@@ -1,0 +1,46 @@
+import numpy as np
+
+
+#matrice in cui vengono memorizzati tutti i dati degli switch, interfacce etc in base al loro id reale
+class Switch_table:
+
+    #costruttore
+    def __init__(self):
+        self.init_righe = 10
+        self.init_colonne = 2
+        self.riga_id_switch = 0
+        self.id_column = {}  #chiave = id switch, valore = colonna tabella
+        self.mx = np.zeros((self.init_righe, self.init_colonne))  #matrice
+        self.free_cm = [] #lista contentente le colonne libere della tabella
+
+    #aggiunge uno switch
+    def add_node(self, sw):
+        if len(self.free_cm) > 0: #se ci sono posti vuoti in mezzo alla matrice aggiungilo li
+            self.id_column[sw] = self.free_cm[len(self.free_cm)-1]
+            self.mx[self.riga_id_switch][self.free_cm[len(self.free_cm)-1]] = sw #metto l'id nello switch nella prima colonna libera
+            del self.free_cm[len(self.free_cm)-1] #assegna la label occupata alla colonna in tabella
+
+        else:
+            if  ((len(self.free_cm) == 0) and (len(self.id_column) == len(self.mx[0]))):
+                self.mx.resize(self.init_righe, len(self.mx[0])*2)
+            #aggiungilo nel primo posto libero della tabella
+            self.id_column[sw] = len(self.id_column)
+            self.mx[self.riga_id_switch][len(self.id_column) -1] = sw
+
+    #rimuove uno switch
+    def rm_node(self, sw):
+
+        #inserire la colonna libera nella lista all'inizio
+        self.free_cm[0:0] = [self.id_column[sw]]
+        #rimozione dal dizionario e sovrascrivere con zeri la colonna eventualmente
+        self.mx[self.riga_id_switch][self.id_column[sw]] = 0
+        del self.id_column[sw]
+
+    #aggiunge l'interfaccia allo switch specificato
+    #def add_interface(switch, interfaccia, ...)
+
+    #stampa la matrice per ora
+    def show(self):
+        print self.mx
+        print "colonne libere della tabella", self.free_cm
+        print "dizionario", self.id_column
