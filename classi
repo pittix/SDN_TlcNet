@@ -1,0 +1,61 @@
+import networkx as nx            #libreria per i grafi
+import matplotlib.pyplot as plt  #libreria matlab per plottare i grafi
+import numpy as np               #libreria per gli array
+
+#oggetti di tipo switch che compongono i nodi del mio grafo
+class Switch():
+
+    def __init__(self, nome ):
+        self.id  = nome
+        self.port = {} #dizionario chiave = porta, valore = id dello switch collegato
+        self.switch_vicini = {} #dizionario chiave = id dello switch vicino
+        #struttura per memorizzarsi le interfacce
+
+    #aggiungo uno switch collegato ad una porta
+    def add_interface(self, porta, sw_nb):
+        self.port[porta] = sw_nb #aggiungo lo switch al dizinario
+        self.switch_vicini[sw_nb] = porta #aggiungo la porta al dizionario
+        #aggiungere controllo doppioni
+        print "aggiunta link in ", self.id
+        print self.port
+        print self.switch_vicini
+
+
+    #rimuovo lo switch connesso
+    def rm_interface(self, sw):
+        del self.port[self.switch_vicini[sw]]  #rimuove la porta dal dizionario delle porte
+        del self.switch_vicini[sw] #rimuove lo switch collegato
+        #aggiungere controllo di chiave presente prima di rimuoverla
+        print "rimozione in ", self.id
+        print self.port
+        print self.switch_vicini
+
+class Network:
+
+    def __init__(self):
+        self.dizio = {}
+        #inizializza il grafo
+
+    def add_switch(self, nome):
+        self.dizio[nome] =  Switch(nome)
+        #aggiungerlo al grafo
+
+    def rm_switch(self, nome):
+        del self.dizio[nome]
+        #rimuoverlo anche da grafo
+
+    #aggiunge un link tra due elementi
+    def add_link(self, id1, port1, id2, port2):
+        self.dizio[id1].add_interface(port1, id2)
+        self.dizio[id2].add_interface(port2, id1)
+        #devo aggiungerlo anche al grafo
+
+    #rimuove un link presente
+    def rm_link(self, id1, id2):
+        self.dizio[id1].rm_interface(id2)
+        self.dizio[id2].rm_interface(id1)
+        #devo rimuoverlo anche al grafo
+
+    def show(self):
+        print self.dizio
+        #stampa anche il grafo
