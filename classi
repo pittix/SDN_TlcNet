@@ -34,28 +34,30 @@ class Network:
 
     def __init__(self):
         self.dizio = {}
-        #inizializza il grafo
+        self.topo = nx.Graph() #inizializza il grafo
+
 
     def add_switch(self, nome):
-        self.dizio[nome] =  Switch(nome)
-        #aggiungerlo al grafo
+        self.dizio[nome] =  Switch(nome) #aggiunge lo switch al dizionario
+        self.topo.add_node(nome)  #aggiunge lo switch al grafo
 
     def rm_switch(self, nome):
         del self.dizio[nome]
-        #rimuoverlo anche da grafo
+        self.topo.remove_node(nome)  #rimuoverlo anche da grafo
 
     #aggiunge un link tra due elementi
     def add_link(self, id1, port1, id2, port2):
         self.dizio[id1].add_interface(port1, id2)
         self.dizio[id2].add_interface(port2, id1)
-        #devo aggiungerlo anche al grafo
+        self.topo.add_edge(id1, id2)  #aggiunge il link al grafo
 
     #rimuove un link presente
     def rm_link(self, id1, id2):
         self.dizio[id1].rm_interface(id2)
         self.dizio[id2].rm_interface(id1)
-        #devo rimuoverlo anche al grafo
+        self.topo.remove_edge(id1, id2)  #devo rimuoverlo anche al grafo
 
     def show(self):
         print self.dizio
-        #stampa anche il grafo
+        nx.draw_networkx(self.topo)  #stampa anche il grafo
+        plt.show()
