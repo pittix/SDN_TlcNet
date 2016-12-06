@@ -5,7 +5,7 @@ in DOI:10.1109/ICSPCS.2014.7021050 (available in the IEEE explorer website)
 from pox.core import core
 import pox.openflow.libopenflow_01 as of
 import pox.lib.packet as pkt
-
+log=core.getLogger()
 class findTopology(self)
 self.net=Network();
 
@@ -52,6 +52,10 @@ class Discovery(Event)
     self.net=Network()
 
     def send_LLDP(*switches):
+        """
+        Send LLDP packets, one for each switch. Other switches will receive the packet and
+        send it to the controller, so it can get the connections between switches.
+        """
         for switch in switches:
             #output to all ports
             msg=of.ofp_packet_out(action = of.ofp_action_output(port=of.OFPP_ALL)))
@@ -106,6 +110,8 @@ class Discovery(Event)
         #allow the code to retrieve how two switches are connected
         switch_discovered["srcMac"]= packet.src # get source mac (LL src)
         switch_discovered["srcID"]=int(lldpHead.tlvs[0].id[5:],16)
-        switch_discovered["dstPort"]=packet.port #destination port. Destination mac is multicast
+        switch_discovered["dstPort"]=event.port #destination port. Destination mac is multicast
         switch_discovered["dstID"]= event.dpid
+        #add connection
+        net.add_link(switch_discovered["srcID"],net.port_from_mac(packet.src),event.dpid,event.port)
         return switch_discovered
