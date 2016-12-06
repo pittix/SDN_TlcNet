@@ -10,16 +10,19 @@ class findTopology(self)
 self.net=Network();
 
     def _handle_ConnectionUp(self,event):
+        """
+        For the connectionUp event add the switch to the graph and
+        """
             #ask for feature to this new switch
             feature_request(event.dpid)
             net.add_switch(dpid)
             self.event=event #save connection
 
-
-    def _handle_feature_reply(self,event):
+            #handle feature reply packet arrival (FeatureRes event)
+    def _handle_FeatureRes(self,event):
         #recheck if it's a feature reply packet
         packet=event.parsed            ## WRONG, I think
-        match = of.ofp_match.from_packet(pkt)
+        match = of.ofp_match.from_packet(packet)
         if match.type != of.OFPT_FEATURES_REPLY ##CHECK if WRONG
             return #not my packet
         portsInfo=packet.phy_port #PhyPort vector. @see flowgrammable
@@ -27,18 +30,19 @@ self.net=Network();
         for p in portsInfo:
             #convention used with matteo, the i port is in the i-1 position in the vector
             #in the port number I put inside the mac address
-            ports[p.id.in_port -1]=p.hw_addr
+            ports[p.id -1]=p.hw_addr
             # ports[p.id.in_port -1] = p.state
 
-        toGraph=[event.dpid ports]
         #add the switch to the graph
-        net.addSwitch(toGraph)
+        net.addSwitch(event.dpid, ports)
 
+        #FeatureReq event generator
     def feature_request(swID):
         """create a new openflow packet for the switch indicated in swID to ask for
         its ports and their state
         """
-        msg=of.of.ofp_feature_request()
+        msg=of.ofp_feature_request(swID)
+
         self.connection.send(msg)
 
     def link_update(**links):
