@@ -7,7 +7,8 @@ import pox.openflow.libopenflow_01 as of
 import pox.lib.packet as pkt
 log=core.getLogger()
 class findTopology(self)
-self.net=Network();
+self.net=Network()
+self.sw=Switch()
 
     def _handle_ConnectionUp(self,event):
         """
@@ -27,10 +28,12 @@ self.net=Network();
             return #not my packet
         portsInfo=packet.phy_port #PhyPort vector. @see flowgrammable
         # Extract mac address for each port. I can extract also the state (connected, link down, listening)
+        ports=Port()
+
         for p in portsInfo:
             #convention used with matteo, the i port is in the i-1 position in the vector
             #in the port number I put inside the mac address
-            ports[p.id -1]=p.hw_addr
+            ports.addPort(p.id,p.hw_addr,p.state,p.feature)
             # ports[p.id.in_port -1] = p.state
 
         #add the switch to the graph
@@ -41,15 +44,15 @@ self.net=Network();
         """create a new openflow packet for the switch indicated in swID to ask for
         its ports and their state
         """
-        msg=of.ofp_feature_request(swID)
+        msg=of.ofp_feature_request()
+        core.openflow.sendToDPID(swID, msg) #Send Feature request
 
-        self.connection.send(msg)
 
-    def link_update(**links):
+
 
 class Discovery(Event)
     __init__(self):
-    self.net=Network()
+    self.switches = Switches.listSwitches()
 
     def send_LLDP(*switches):
         """
@@ -60,7 +63,7 @@ class Discovery(Event)
             #output to all ports
             msg=of.ofp_packet_out(action = of.ofp_action_output(port=of.OFPP_ALL)))
             msg.data=self.create_LLDP(switch, TTL_TLV);
-            self.event.connection.send(msg)
+            core.openflow.sendToDPID(switch,msg)
 
         log.debug("sent all LLDP packets to the switches")
 
