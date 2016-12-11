@@ -25,7 +25,7 @@ import pox.topology
 from pox.openflow.discovery import Discovery
 import pox.openflow.topology
 from pox.lib.util import dpid_to_str
-#import pox.host_tracker
+import pox.host_tracker
 from pox.lib.recoco import Timer  #per eseguire funzioni ricorsivamente
 
 import time
@@ -51,17 +51,33 @@ def _handle_LinkEvent(event):
     else:
         pass
 
+def _handle_HostEvent(event):
+    """
+    handle HostEvent from discovery
+    """
+    mac_host = event.entry.macaddr
+    dpid_sw = event.entry.dpid
+    dpid_port = event.entry.port
+    key1 = event.entry.ipAddrs.keys()
+
+    if event.join:
+        if len(key1) > 0:
+            host_ip = key1[0]
+            topo.add_host(dpid_sw, mac_host, dpid_port, host_ip)
+            log.debug(host_ip)
+        else:
+            pass #no ip i have only mac
+    elif event.leave:
+        pass
+
 def _show_topo():
     """
     function to show the graph on a separate process
-
     funzione da sistemare, il multirocesso in questo caso non e' necessario
 
     """
     job_for_another_core = multiprocessing.Process(target=topo.save_graph,args=()) #chiama la funzione save_graph in un processo separato
     job_for_another_core.start()
-
-    #log.debug("thread mostra grafo matteeeeoooooooooooo")
 
 def launch():
     """
@@ -69,21 +85,15 @@ def launch():
         pox.topology.launch()
         pox.openflow.discovery.launch()
         pox.openflow.topology.launch()
+        pox.host_tracker.launch()
 
     and make listeners functions
     """
     pox.topology.launch()
     pox.openflow.discovery.launch()
     pox.openflow.topology.launch()
+    pox.host_tracker.launch()
     core.openflow_discovery.addListenerByName("LinkEvent", _handle_LinkEvent)
+    core.host_tracker.addListenerByName("HostEvent", _handle_HostEvent)
 
     Timer(2, _show_topo, recurring=True) #every 2 seconds execute _show_topo
-
-#def launch ():
-    #pox.topology.launch()
-    #pox.openflow.discovery.launch()
-    #pox.openflow.topology.launch()
-    #pox.host_tracker.launch()
-    #import pox.topo_graph
-    #pox.topo_graph.launch()
-    #core.openflow_discovery.addListenerByName("LinkEvent", _handle_LinkEvent)
