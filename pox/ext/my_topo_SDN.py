@@ -3,6 +3,8 @@
 # e' un oggetti in fine
 from pox.core import core
 from pox.lib.util import dpid_to_str
+import pox.openflow.libopenflow_01 as of
+from pox.lib.addresses import IPAddr, EthAddr
 
 import networkx as nx            #libreria per i grafi
 import matplotlib.pyplot as plt  #libreria matlab per plottare i grafi
@@ -13,7 +15,8 @@ class topo():
     def __init__(self):
         self.switch = {} #dizionario di switch dpid e' la chiave
         self.grafo = nx.Graph()
-        self.ip_to_switch = {} #dizionario in cui l'ip solo le chiavi e i valori gli switch
+        self.ip_to_switch = {} #dizionario in cui l'ip solo le chiavi e i valori gli elementi switch
+        self.mac_to_ip = {} #per gli host
 
     def add_host(self, dpid, mac, port, ip):
         """
@@ -23,14 +26,18 @@ class topo():
         #da finire
         x = True
         try:
-            self.ip_to_switch[dpid_to_str(dpid)] = ip
+            self.switch[dpid]
         except:
             log.debug("Add host to switch that don't exist")
             x = False
         if x: #se lo switch e' presente
             self.switch[dpid].add_host(mac, port, ip)
+            self.mac_to_ip[mac] = ip
+            self.ip_to_switch[ip] = self.switch[dpid]
             self.grafo.add_node(ip)
             self.grafo.add_edge(dpid, ip)
+            log.debug("add host %s", ip)
+
 
     def add_switch(self, dpid):
         """
@@ -43,6 +50,13 @@ class topo():
             sw = my_Switch(dpid)
             self.switch[dpid] = sw
             self.grafo.add_node(dpid)
+
+        msg = of.ofp_flow_mod()
+        msg.priority = 50
+        msg.match.dl_type = 0x806 #arp reques
+        msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD ))
+        core.openflow.sendToDPID(dpid, msg)
+
 
     def rm_switch(self, dpid):
         """
@@ -61,7 +75,7 @@ class topo():
     def save_graph(self):
         nx.draw_networkx(self.grafo)          #stampa anche il grafo
         plt.savefig("grafo.png")         #salva l'immagine
-        log.debug("saved image graph")
+        #log.debug("saved image graph")
         plt.clf()                        #elimina l'immagine corrente dalla libreria
 
         #key = self.switch.keys()
@@ -94,6 +108,49 @@ class topo():
             del self.switch[dpid2].port_dpid[port2]
             del self.switch[dpid2].dpid_port[dpid1]
 
+    def add_default_path(self, ip_src, ip_dst):
+        sw_list = nx.shortest_path(self.grafo,source=ip_src, target=ip_dst)
+        log.debug(sw_list)
+        for i in range (1, len(sw_list) - 2):
+            print i
+            # poi aggiornare anche l'arp
+            # msg = of.ofp_flow_mod()
+            # msg.priority = 100
+            # msg.match.dl_type = 0x806 #arp reques
+            # msg.match.dl_dst = EthAddr(str(mac))
+            # msg.actions.append(of.ofp_action_output(port = porta ))
+            # core.openflow.sendToDPID(self.dpid, msg)
+
+            msg = of.ofp_flow_mod()
+            msg.priority = 1000
+            msg.match.nw_dst = IPAddr(str(ip))
+            msg.match.dl_type = 0x800 #ip
+            msg.actions.append(of.ofp_action_output(port = porta ))
+            core.openflow.sendToDPID(self.dpid, msg)
+
+            #i'm working on
+
+
+    def ip_connected(self, ip1, ip2):
+        x = True
+        #log.debug("ip_connected ip1 %s ip2 %s", str(ip1), str(ip2))
+        try:
+            self.ip_to_switch[ip1]
+        except:
+            #log.debug("ip1 not found")
+            x = False
+
+        try:
+            self.ip_to_switch[ip2]
+        except:
+            #log.debug("ip2 not found")
+            x = False
+
+        if x:
+            if nx.has_path(self.grafo, source=ip1, target=ip2):
+                return True
+            else:
+                return False
 
 class my_Switch():
     def __init__(self, dpid):
@@ -103,13 +160,28 @@ class my_Switch():
         self.port_mac = {}
         self.mac_port = {}
 
-    def add_host(self, mac, port, ip):
+    def add_host(self, mac, porta, ip):
         "add host on the switch's port"
         try:
-            port = self.dpid_port[ip]
+            pt = self.dpid_port[ip]
             log.debug("IP still exist on the switch")
         except:
-            self.dpid_port[ip] = port
-            self.port_dpid[port] = ip
-            self.port_mac[port] = mac
-            self.mac_port[mac] = port
+            self.dpid_port[ip] = porta
+            self.port_dpid[porta] = ip
+            self.port_mac[porta] = mac
+            self.mac_port[mac] = porta
+            log.debug("aggiungo host %s e installare regole", ip)
+
+            msg = of.ofp_flow_mod()
+            msg.priority = 100
+            msg.match.dl_type = 0x806 #arp reques
+            msg.match.dl_dst = EthAddr(str(mac))
+            msg.actions.append(of.ofp_action_output(port = porta ))
+            core.openflow.sendToDPID(self.dpid, msg)
+
+            msg = of.ofp_flow_mod()
+            msg.priority = 1000
+            msg.match.nw_dst = IPAddr(str(ip))
+            msg.match.dl_type = 0x800 #ip
+            msg.actions.append(of.ofp_action_output(port = porta ))
+            core.openflow.sendToDPID(self.dpid, msg)
