@@ -112,23 +112,43 @@ class topo():
         sw_list = nx.shortest_path(self.grafo,source=ip_src, target=ip_dst)
         log.debug(sw_list)
         for i in range (1, len(sw_list) - 2):
-            print i
-            # poi aggiornare anche l'arp
-            # msg = of.ofp_flow_mod()
-            # msg.priority = 100
-            # msg.match.dl_type = 0x806 #arp reques
-            # msg.match.dl_dst = EthAddr(str(mac))
-            # msg.actions.append(of.ofp_action_output(port = porta ))
-            # core.openflow.sendToDPID(self.dpid, msg)
+            #installo i flussi da ip_src a ip_dst
 
             msg = of.ofp_flow_mod()
-            msg.priority = 1000
-            msg.match.nw_dst = IPAddr(str(ip))
+            msg.priority = 1001
+            msg.match.nw_dst = IPAddr(str(ip_dst))
             msg.match.dl_type = 0x800 #ip
-            msg.actions.append(of.ofp_action_output(port = porta ))
-            core.openflow.sendToDPID(self.dpid, msg)
+            pt_next_hope = self.switch[sw_list[i]].dpid_port[sw_list[i+1]]
+            msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
+            core.openflow.sendToDPID(sw_list[i], msg) #switch i-esimo
+            #print("primo ciclo for %i porta %s", i, pt_next_hope)
+            msg = of.ofp_flow_mod()
+            msg.priority = 150
+            msg.match.dl_type = 0x806 #arp reques
+            #msg.match.dl_dst = EthAddr(str(mac))
+            msg.match.nw_dst = IPAddr(str(ip_dst))
+            msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
+            core.openflow.sendToDPID(sw_list[i], msg)
 
-            #i'm working on
+        for i in range (2, len(sw_list) - 1):
+            #installo i flussi da ip_dst a ip_src
+
+            msg = of.ofp_flow_mod()
+            msg.priority = 1001
+            msg.match.nw_dst = IPAddr(str(ip_src))
+            msg.match.dl_type = 0x800 #ip
+            pt_pre_hope = self.switch[sw_list[i]].dpid_port[sw_list[i-1]]
+            msg.actions.append(of.ofp_action_output(port = pt_pre_hope ))
+            core.openflow.sendToDPID(sw_list[i], msg) #switch i-esimo
+            #print("secondo ciclo for %i porta %s", i, pt_pre_hope)
+            msg = of.ofp_flow_mod()
+            msg.priority = 150
+            msg.match.dl_type = 0x806 #arp reques
+            #msg.match.dl_dst = EthAddr(str(mac))
+            msg.match.nw_dst = IPAddr(str(ip_src))
+            msg.actions.append(of.ofp_action_output(port = pt_pre_hope ))
+            core.openflow.sendToDPID(sw_list[i], msg)
+
 
 
     def ip_connected(self, ip1, ip2):

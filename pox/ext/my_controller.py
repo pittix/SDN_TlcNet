@@ -24,6 +24,7 @@ from pox.lib.revent import *
 import pox.topology
 from pox.openflow.discovery import Discovery
 import pox.openflow.topology
+import pox.openflow.spanning_tree
 from pox.lib.util import dpid_to_str
 import pox.host_tracker
 from pox.lib.recoco import Timer  #per eseguire funzioni ricorsivamente
@@ -153,9 +154,10 @@ def launch():
     pox.topology.launch()
     pox.openflow.discovery.launch()
     pox.openflow.topology.launch()
+    pox.openflow.spanning_tree.launch()
     #pox.host_tracker.launch()
     core.openflow_discovery.addListenerByName("LinkEvent", _handle_LinkEvent)
-    #core.host_tracker.addListenerByName("HostEvent", _handle_HostEvent)
+    #minicore.host_tracker.addListenerByName("HostEvent", _handle_HostEvent)
     core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
     core.openflow.addListenerByName("ConnectionUp",_handle_ConnectionUp)
 
