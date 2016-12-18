@@ -18,6 +18,7 @@ def req_stats(dpid, type=DESC_STATS, port=1, tab=1):
     con=core.openflow.getConnection(dpid)
     if type is None: #default do the aggregate
         con.send(of.ofp_stats_request(body=of.ofp_aggregate_stats_request()))
+        return
     if ((type & DESC_STATS) != 0) :
         con.send(of.ofp_stats_request(body=of.ofp_desc_stats_request()))
     if ((type & FLOW_STATS) != 0) :
@@ -30,31 +31,104 @@ def req_stats(dpid, type=DESC_STATS, port=1, tab=1):
         con.send(of.ofp_stats_request(body=of.ofp_queue_stats_request()))#port=port)))
 
 def _handle_flow_stats(event):
-    stat_flow = event.stats
-    print ("FLOW_STATS: %s",stat_flow)
+    #stat_flow = event.stats
+    flow_dict=[]
+    for i,rule in enumerate(event.stats):
+        flow_dict.append({})
+        flow_dict[i-1]["tableID"] = rule.table_id
+        #flow_dict[i-1]["pad"] = rule.pad
+        flow_dict[i-1]["match"] = rule.match.show()
+        flow_dict[i-1]["Tsecond"] = rule.duration_sec
+        flow_dict[i-1]["Tnanos"] = rule.duration_nsec
+        flow_dict[i-1]["Pri"] = rule.priority
+        flow_dict[i-1]["HardTimeout"] = rule.hard_timeout
+        flow_dict[i-1]["IdleTimeout"] = rule.idle_timeout
+        flow_dict[i-1]["cookie"] = rule.cookie
+        flow_dict[i-1]["pktCount"] = rule.packet_count
+        flow_dict[i-1]["byteCount"] = rule.byte_count
+        flow_dict[i-1]["actions"] = []
+        # for j,act in enumerate(rule.actions):
+        #     flow_dict[i-1]["actions"][j-1] = {}
+        #     flow_dict[i-1]["actions"][j-1][""] =
+    print ("FLOW_STATS")
+    print(flow_dict)
+    #print(stat_flow)
     #return None #todo
 def _handle_port_stats(event):
-    stat_port = event.stats
-    print ("PORT_STATS: %s",stat_port)
+    # stat_port = event.stats
+    port_dict=[]
+    for i,port in enumerate(event.stats):
+        port_dict.append({})
+        port_dict[i-1]["Pnum"] = port.port_no
+        port_dict[i-1]["rxPkts"] = port.rx_packets
+        port_dict[i-1]["txPkts"] = port.tx_packets
+        port_dict[i-1]["rxB"] = port.rx_bytes
+        port_dict[i-1]["txB"]= port.tx_bytes
+        port_dict[i-1]["rxDropped"] = port.rx_dropped
+        port_dict[i-1]["txDropped"]= port.tx_dropped
+        port_dict[i-1]["rxErr"] = port.rx_errors
+        port_dict[i-1]["txErr"] = port.tx_errors
+        port_dict[i-1]["rxFrameErr"] = port.rx_frame_err
+        port_dict[i-1]["rxOverErr"] = port.rx_over_err
+        port_dict[i-1]["crcErr"] = port.rx_crc_err
+        port_dict[i-1]["collision"] = port.collisions
+    print ("PORT_STATS")
+    #print(stat_port)
+    print(port_dict)
     #return None #todo
 
 def req_connectionToHost(host):
     return None
 def _handle_queue_stats(event):
-    stat_queue = event.stats
-    print ("Queue_STATS: %s",stat_queue)
+    #stat_queue = event.stats
+    queue_dict=[]
+    for i,port in enumerate(event.stats): #stats for each port' queue
+        queue_dict.append({})
+        queue_dict[i-1]["Pnum"] = port.port_no
+        queue_dict[i-1]["length"] = port.queue_id
+        queue_dict[i-1]["txB"] = port.tx_bytes
+        queue_dict[i-1]["txPkts"] = port.tx_packets
+        queue_dict[i-1]["txE"] = port.tx_errors
+    print ("Queue_STATS")
+    print(queue_dict)
+    #print(stat_queue)
     #return None
 def _handle_table_stats(event):
-    stat_tab = event.stats
-    print ("Table_STATS: %s",stat_tab)
+    # stat_tab = event.stats
+    tab_dict=[]
+    for i,tab in enumerate(event.stats): #extract all tables
+        tab_dict.append({})
+        tab_dict[i-1]["table_id"] = tab.table_id
+        #tab_dict[i-1]["pad"] = tab.pad
+        tab_dict[i-1]["name"] = tab.name
+        tab_dict[i-1]["wildcards"] = tab.wildcards
+        tab_dict[i-1]["maxEntries"] = tab.max_entries
+        tab_dict[i-1]["activeCount"] = tab.active_count
+        tab_dict[i-1]["lookupCount"] = tab.lookup_count
+        tab_dict[i-1]["matched"] = tab.matched_count
+    print ("Table_STATS")
+    print(tab_dict)
     #return None
 def _handle_aggregate_stats(event):
     stat_aggr = event.stats
-    print ("Aggregate_STATS: %s",stat_aggr)
+    aggr_dict={}
+    aggr_dict["pktCount"] = stat_aggr.packet_count
+    aggr_dict["byteCount"] = stat_aggr.byte_count
+    aggr_dict["flowCount"] = stat_aggr.flow_count
+    #aggr_dict["pad"] = stat_aggr.pad
+    print ("Aggregate_STATS")
+    print(aggr_dict)
     #return None
-def _handle_desc_stats(event):
+def _handle_desc_stats(event): ###WORKING
     stat_desc = event.stats
-    print ("Description_STATS: %s",stat_desc)
+    desc_dict={}
+    desc_dict["hw"]=stat_desc.hw_desc
+    desc_dict["sw"]=stat_desc.sw_desc
+    desc_dict["mfr"]=stat_desc.mfr_desc
+    desc_dict["SN"]=stat_desc.serial_num
+    desc_dict["dp"]=stat_desc.dp_desc
+    print ("Description_STATS:")
+    print (desc_dict)
 def launch():
     core.openflow.addListenerByName("FlowStatsReceived", _handle_flow_stats)
     core.openflow.addListenerByName("SwitchDescReceived", _handle_desc_stats)
@@ -67,7 +141,7 @@ def launch():
 
 
 def _create_stat_request():
-    for typ in [1,2,4,8,16,None]:
+    for typ in [31,None]:
         for sw in dpid:
             req_stats(sw, type=typ, port = 1, tab=1)
 def _handle_ConnUp(event):

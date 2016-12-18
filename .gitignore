@@ -1,4 +1,9 @@
 *.pyc
+*.pyo
 *.png
+*/*/*.pyo
+*/*/*.pyc
+*/*.pyo     
+*/*.pyc     
 LICENCE
 
