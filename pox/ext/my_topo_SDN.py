@@ -1,6 +1,5 @@
 #classe topo SDN
 #che utilizzo nel mio controller
-# e' un oggetti in fine
 from pox.core import core
 from pox.lib.util import dpid_to_str
 import pox.openflow.libopenflow_01 as of
@@ -77,13 +76,10 @@ class topo():
         """
         self.add_switch(dpid1)
         self.add_switch(dpid2)
-
         self.switch[dpid1].port_dpid[port1] = dpid2
         self.switch[dpid1].dpid_port[dpid2] = port1
-
         self.switch[dpid2].port_dpid[port2] = dpid1
         self.switch[dpid2].dpid_port[dpid1] = port2
-
         self.grafo.add_edge(dpid1, dpid2)
 
     def rm_link(self, dpid1, port1, dpid2, port2):
@@ -151,6 +147,13 @@ class topo():
     def ip_connected(self, ip1, ip2):
         try:
             nx.has_path(self.grafo, source=ip1, target=ip2)
+        except:
+            return False
+        return True
+
+    def is_logged(self, ip1):
+        try:
+            self.ip_to_switch[ip1]
         except:
             return False
         return True

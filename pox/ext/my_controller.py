@@ -61,15 +61,16 @@ def _handle_LinkEvent(event):
 #     dpid_sw = event.entry.dpid
 #     dpid_port = event.entry.port
 #     key1 = event.entry.ipAddrs.keys()
-#     if event.join:
-#         if len(key1) > 0:
-#             host_ip = key1[0]
-#             topo.add_host(dpid_sw, mac_host, dpid_port, host_ip)
-#             log.debug("from host event %s", host_ip)
-#         else:
-#             pass #no ip i have only mac
-#     elif event.leave:
-#         pass
+#     log.debug("host event handler")
+#     # if event.join:
+#     #     if len(key1) > 0:
+#     #         host_ip = key1[0]
+#     #         topo.add_host(dpid_sw, mac_host, dpid_port, host_ip)
+#     #         log.debug("from host event %s", host_ip)
+#     #     else:
+#     #         pass #no ip i have only mac
+#     # elif event.leave:
+#     #     pass
 
 def _handle_ConnectionUp (event):
     """
@@ -114,6 +115,17 @@ def _handle_ip_packet(event):
     if ip_packet.dstip == IPAddr('10.10.0.0'):
         topo.add_host(event.connection.dpid, src_mac, event.port, ip_packet.srcip)
 
+
+    log.debug("ip_src presente? %s" , topo.is_logged(ip_src))
+    log.debug("ip_dst presente? %s" , topo.is_logged(ip_dst))
+
+    #verifico se l'utente src e' gia' loggato nella rete
+    if topo.is_logged(ip_src):
+        log.debug("\n %s gia' presente nella rete", ip_src)
+    else:
+        topo.add_host(event.connection.dpid, src_mac, event.port, ip_packet.srcip)
+        log.debug("\n %s aggiunto nella rete", ip_src)
+
     if topo.ip_connected(ip_src, ip_dst):
         #installa le rotte di default con la minimum path
         topo.add_default_path(ip_src, ip_dst)
@@ -145,7 +157,7 @@ def launch():
     pox.openflow.spanning_tree.launch()
     #pox.host_tracker.launch()
     core.openflow_discovery.addListenerByName("LinkEvent", _handle_LinkEvent)
-    #minicore.host_tracker.addListenerByName("HostEvent", _handle_HostEvent)
+    #core.host_tracker.addListenerByName("HostEvent", _handle_HostEvent)
     core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
     core.openflow.addListenerByName("ConnectionUp",_handle_ConnectionUp)
 
