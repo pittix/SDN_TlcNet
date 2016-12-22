@@ -8,7 +8,7 @@ from pox.lib.addresses import IPAddr, EthAddr
 
 import networkx as nx            #libreria per i grafi
 import matplotlib.pyplot as plt  #libreria matlab per plottare i grafi
-
+import ipaddress as Ip
 log = core.getLogger()
 
 class topo():
@@ -109,7 +109,17 @@ class topo():
             del self.switch[dpid2].dpid_port[dpid1]
 
     def add_default_path(self, ip_src, ip_dst):
-        sw_list = nx.shortest_path(self.grafo,source=ip_src, target=ip_dst)
+        internet = my_controller.getInternetPort()
+        goesToInternet = False
+        if  not grafo.has_node(ip_dst) and internet is not None:
+            #TODO set a default node to reach internet
+            #if Ip.ip_network(event.parsed.next.nw_dst) != Ip.ip_network("10.0.0.0/24"):
+            #TODO traffic to the port internet[1] in the switch internet[0]
+            goesToInternet=True
+            sw_list = grafo.shortest_path(source=ip_src, target = internet[0] )
+
+        else:
+            sw_list = nx.shortest_path(self.grafo,source=ip_src, target=ip_dst)
         log.debug(sw_list)
         for i in range (1, len(sw_list) - 2):
             #installo i flussi da ip_src a ip_dst
@@ -130,6 +140,23 @@ class topo():
             msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
             core.openflow.sendToDPID(sw_list[i], msg)
 
+        if goesToInternet:
+            #out port to reach internet
+            msg = of.ofp_flow_mod()
+            msg.priority = 100 #lower priority, so it's the last thing to happen
+            #msg.match.nw_dst = IPAddr(str(ip_dst)) #TODO edit to 0.0.0.0
+            msg.match.dl_type = 0x800 #ip
+            msg.actions.append(of.ofp_action_output(port = internet[1] ))
+            core.openflow.sendToDPID(sw_list[-1], msg) #switch i-esimo
+            #print("primo ciclo for %i porta %s", i, pt_next_hope)
+            msg = of.ofp_flow_mod()
+            msg.priority = 150
+            msg.match.dl_type = 0x806 #arp reques
+            #msg.match.dl_dst = EthAddr(str(mac))
+            msg.match.nw_dst = IPAddr(str(ip_dst))
+            msg.actions.append(of.ofp_action_output(port = internet[1] ))
+            core.openflow.sendToDPID(sw_list[-1], msg )
+
         for i in range (2, len(sw_list) - 1):
             #installo i flussi da ip_dst a ip_src
 
@@ -148,7 +175,6 @@ class topo():
             msg.match.nw_dst = IPAddr(str(ip_src))
             msg.actions.append(of.ofp_action_output(port = pt_pre_hope ))
             core.openflow.sendToDPID(sw_list[i], msg)
-
 
 
     def ip_connected(self, ip1, ip2):
