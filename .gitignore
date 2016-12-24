@@ -6,4 +6,5 @@
 */*.pyo     
 */*.pyc     
 LICENCE
-
+Logs/*
+Logs
