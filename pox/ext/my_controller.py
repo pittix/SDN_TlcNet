@@ -34,10 +34,7 @@ from pox.lib.util import str_to_dpid
 import time
 import multiprocessing #multiprocess
 
-import my_topo_SDN as mt #new class
-
-
-topo = mt.topo() #our topology
+import my_topo_SDN as topo #new class
 
 log = core.getLogger()
 
@@ -45,6 +42,7 @@ def _handle_LinkEvent(event):
     """
     handle event ("LinkEvent") from openflow.discovery
     """
+
     l = event.link
     if event.added:
         log.debug('LinkAdd dpid1: {0} porta {1}, dpid2: {2} porta {3}'.format(l.dpid1, l.port1, l.dpid2, l.port2))
