@@ -1,14 +1,14 @@
 #classe topo SDN
 #che utilizzo nel mio controller
-# e' un oggetti in fine
 from pox.core import core
 from pox.lib.util import dpid_to_str
 import pox.openflow.libopenflow_01 as of
 from pox.lib.addresses import IPAddr, EthAddr
 
-import networkx as nx            #libreria per i grafi
-import matplotlib.pyplot as plt  #libreria matlab per plottare i grafi
 import ipaddress as Ip
+import networkx as nx            #graph library
+import matplotlib.pyplot as plt  #for ploting graph
+
 log = core.getLogger()
 
 class topo():
@@ -28,7 +28,7 @@ class topo():
         try:
             self.switch[dpid]
         except:
-            log.debug("Add host to switch that don't exist")
+            log.warning("Add host to switch that don't exist")
             x = False
         if x: #se lo switch e' presente
             self.switch[dpid].add_host(mac, port, ip)
@@ -41,26 +41,20 @@ class topo():
 
     def add_switch(self, dpid):
         """
-        aggiungo uno switch se non e' gia' presente
+        Add a switch if it wasn't already added
         """
         if self.switch.has_key(dpid):
-            pass
+            pass #switch already added
         else:
-            log.debug("switch non presente da aggiungere")
             sw = my_Switch(dpid)
             self.switch[dpid] = sw
             self.grafo.add_node(dpid)
-
-        msg = of.ofp_flow_mod()
-        msg.priority = 50
-        msg.match.dl_type = 0x806 #arp reques
-        msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD ))
-        core.openflow.sendToDPID(dpid, msg)
-
+            log.debug("Add switch: %s", dpid_to_str(dpid))
+            self.add_default_rules(dpid)
 
     def rm_switch(self, dpid):
         """
-        se e' presente elimina lo switch
+        delete switch if it is present
         """
         x = True
         try:
@@ -73,25 +67,20 @@ class topo():
             pass
 
     def save_graph(self):
-        nx.draw_networkx(self.grafo)          #stampa anche il grafo
-        plt.savefig("grafo.png")         #salva l'immagine
-        #log.debug("saved image graph")
-        plt.clf()                        #elimina l'immagine corrente dalla libreria
-
-        #key = self.switch.keys()
-        #for i in range (0, len(key)):
-        #    print self.switch[key[i]].dpid
+        nx.draw_networkx(self.grafo)  #stampa anche il grafo
+        plt.savefig("grafo.png")      #salva l'immagine
+        plt.clf()                     #elimina l'immagine corrente dalla libreria
 
     def add_link(self, dpid1, port1, dpid2, port2):
+        """
+        Inside add_link function, add switch and link
+        """
         self.add_switch(dpid1)
         self.add_switch(dpid2)
-
         self.switch[dpid1].port_dpid[port1] = dpid2
         self.switch[dpid1].dpid_port[dpid2] = port1
-
         self.switch[dpid2].port_dpid[port2] = dpid1
         self.switch[dpid2].dpid_port[dpid1] = port2
-
         self.grafo.add_edge(dpid1, dpid2)
 
     def rm_link(self, dpid1, port1, dpid2, port2):
@@ -121,9 +110,9 @@ class topo():
         else:
             sw_list = nx.shortest_path(self.grafo,source=ip_src, target=ip_dst)
         log.debug(sw_list)
+
         for i in range (1, len(sw_list) - 2):
             #installo i flussi da ip_src a ip_dst
-
             msg = of.ofp_flow_mod()
             msg.priority = 1001
             msg.match.nw_dst = IPAddr(str(ip_dst))
@@ -131,11 +120,10 @@ class topo():
             pt_next_hope = self.switch[sw_list[i]].dpid_port[sw_list[i+1]]
             msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
             core.openflow.sendToDPID(sw_list[i], msg) #switch i-esimo
-            #print("primo ciclo for %i porta %s", i, pt_next_hope)
+
             msg = of.ofp_flow_mod()
             msg.priority = 150
             msg.match.dl_type = 0x806 #arp reques
-            #msg.match.dl_dst = EthAddr(str(mac))
             msg.match.nw_dst = IPAddr(str(ip_dst))
             msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
             core.openflow.sendToDPID(sw_list[i], msg)
@@ -159,7 +147,6 @@ class topo():
 
         for i in range (2, len(sw_list) - 1):
             #installo i flussi da ip_dst a ip_src
-
             msg = of.ofp_flow_mod()
             msg.priority = 1001
             msg.match.nw_dst = IPAddr(str(ip_src))
@@ -167,36 +154,38 @@ class topo():
             pt_pre_hope = self.switch[sw_list[i]].dpid_port[sw_list[i-1]]
             msg.actions.append(of.ofp_action_output(port = pt_pre_hope ))
             core.openflow.sendToDPID(sw_list[i], msg) #switch i-esimo
-            #print("secondo ciclo for %i porta %s", i, pt_pre_hope)
+
             msg = of.ofp_flow_mod()
             msg.priority = 150
             msg.match.dl_type = 0x806 #arp reques
-            #msg.match.dl_dst = EthAddr(str(mac))
             msg.match.nw_dst = IPAddr(str(ip_src))
             msg.actions.append(of.ofp_action_output(port = pt_pre_hope ))
             core.openflow.sendToDPID(sw_list[i], msg)
 
+    def add_default_rules(self, dpid):
+        """
+        add default rules on new switch
+        arp request flooding for now
+        """
+        msg = of.ofp_flow_mod()
+        msg.priority = 50
+        msg.match.dl_type = 0x806 #arp reques
+        msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD ))
+        core.openflow.sendToDPID(dpid, msg)
 
     def ip_connected(self, ip1, ip2):
-        x = True
-        #log.debug("ip_connected ip1 %s ip2 %s", str(ip1), str(ip2))
+        try:
+            nx.has_path(self.grafo, source=ip1, target=ip2)
+        except:
+            return False
+        return True
+
+    def is_logged(self, ip1):
         try:
             self.ip_to_switch[ip1]
         except:
-            #log.debug("ip1 not found")
-            x = False
-
-        try:
-            self.ip_to_switch[ip2]
-        except:
-            #log.debug("ip2 not found")
-            x = False
-
-        if x:
-            if nx.has_path(self.grafo, source=ip1, target=ip2):
-                return True
-            else:
-                return False
+            return False
+        return True
 
 class my_Switch():
     def __init__(self, dpid):
@@ -216,7 +205,6 @@ class my_Switch():
             self.port_dpid[porta] = ip
             self.port_mac[porta] = mac
             self.mac_port[mac] = porta
-            log.debug("aggiungo host %s e installare regole", ip)
 
             msg = of.ofp_flow_mod()
             msg.priority = 100
