@@ -244,6 +244,7 @@ stats = list(4) # create the stats
         return stats[StatsType.FLOW][dpid][flow-1] # dictionary
 
 
+
 class StatsType(Enum):
     PORT=1
     TABLE=2

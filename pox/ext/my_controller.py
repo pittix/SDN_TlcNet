@@ -43,14 +43,18 @@ from pox.lib.packet.ipv4 import ipv4
 from pox.lib.packet.arp import arp
 from pox.lib.addresses import IPAddr, EthAddr
 from pox.lib.util import str_to_dpid
-import time
+#import time
 import multiprocessing #multiprocess
 
+<<<<<<< HEAD
 import my_topo_SDN as mt #new class
 >>>>>>> matteo
 
 
 topo = mt.topo() #our topology
+=======
+import my_topo_SDN as topo #new class
+>>>>>>> matteo
 
 log = core.getLogger()
 _out_mac_def = None
@@ -66,6 +70,7 @@ def _handle_LinkEvent(event):
         log.debug('LinkRemoved dpid1: {0} porta {1}, dpid2: {2} porta {3}'.format(l.dpid1, l.port1, l.dpid2, l.port2))
         topo.rm_link(l.dpid1, l.port1, l.dpid2, l.port2)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 def _handle_HostEvent(event):
     """
@@ -111,10 +116,14 @@ def _show_topo():
 #     #     pass
 
 def _handle_ConnectionUp (event):
+=======
+def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo switch legacy
+>>>>>>> matteo
     """
     handle connection up from switch
     """
     topo.add_switch(event.connection.dpid)
+    #verificare che sua uno switch openflow
     log.debug("Add switch: %s", dpid_to_str(event.connection.dpid))
 
 def _handle_PacketIn(event):
@@ -148,11 +157,6 @@ def _handle_ip_packet(event):
 
     ip_src = ip_packet.srcip #ip sorgente
     ip_dst = ip_packet.dstip #ip destinatario
-
-    #connessione alla rete
-    if ip_packet.dstip == IPAddr('10.10.0.0'):
-        topo.add_host(event.connection.dpid, src_mac, event.port, ip_packet.srcip)
-
 
     log.debug("ip_src presente? %s" , topo.is_logged(ip_src))
     log.debug("ip_dst presente? %s" , topo.is_logged(ip_dst))
@@ -212,6 +216,7 @@ def launch(__INSTANCE__=None, **args):
     pox.topology.launch()
     pox.openflow.discovery.launch()
     pox.openflow.topology.launch()
+<<<<<<< HEAD
     pox.host_tracker.launch()
     core.openflow_discovery.addListenerByName("LinkEvent", _handle_LinkEvent)
 <<<<<<< HEAD
@@ -234,9 +239,17 @@ def launch(__INSTANCE__=None, **args):
 Timer(2, _show_topo, recurring=True) #every 2 seconds execute _show_topo
 =======
     #core.host_tracker.addListenerByName("HostEvent", _handle_HostEvent)
+=======
+    pox.openflow.spanning_tree.launch()
+    core.openflow_discovery.addListenerByName("LinkEvent", _handle_LinkEvent)
+>>>>>>> matteo
     core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
     core.openflow.addListenerByName("ConnectionUp",_handle_ConnectionUp)
 
 
+<<<<<<< HEAD
     Timer(2, _show_topo, recurring=True) #every 2 seconds execute _show_topo
+>>>>>>> matteo
+=======
+    Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
 >>>>>>> matteo
