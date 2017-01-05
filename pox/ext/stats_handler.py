@@ -3,7 +3,7 @@ from pox.lib.util import dpid_to_str
 import pox.openflow.libopenflow_01 as of
 import time
 from pox.lib.recoco import Timer  #per eseguire funzioni ricorsivamente
-
+import my_topo_SDN as myTopo;
 log = core.getLogger()
 
 dpid = list()
@@ -13,6 +13,7 @@ TABLE_STATS = 4
 PORT_STATS = 8
 QUEUE_STATS = 16
 AGGREGATE_STATS=None
+UPD_GRAPH = 10 # every 10 seconds update the graph weight
 # class can be executed by pox core
 def launch():
     core.openflow.addListenerByName("FlowStatsReceived", _handle_flow_stats)
@@ -119,7 +120,7 @@ def _handle_queue_stats(event):
     #print ("Queue_STATS")
     StatsHandler.__saveStats(StatsType.QUEUE, event.dpid, queue_dict)
 
-    return queue_dict
+    #return queue_dict
     #print(stat_queue)
     #return None
 def _handle_table_stats(event):
@@ -160,10 +161,6 @@ def _handle_desc_stats(event): ###WORKING
 
 class StatsHandler:
 stats = list(4) # create the stats
-    def __init__():
-        for s in StatsType:
-            stats[s]={} #initialize every element of the list with a dictionary that will be a dpid dictionary
-
     def __saveStats(sType,dpid, stats):
         if not (dpid in stats[sType]):
             stats[sType].update({dpid:""}) # add the dpid dictionary
@@ -171,7 +168,7 @@ stats = list(4) # create the stats
         stats[sType][dpid]=stats # overwrite the stats
         log.debug("added the stats for dpid %i",dpid)
 
-    def getStats(sType, dpid, port=None, table=None,flow=None):
+    def getStats(self,sType, dpid, port=None, table=None,flow=None):
         """ Try to get the stats for the specified dpid. If no stats is found, return None
         """
         if sType is None:
