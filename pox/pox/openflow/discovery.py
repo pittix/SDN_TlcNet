@@ -18,7 +18,6 @@
 This module discovers the connectivity between OpenFlow switches by sending
 out LLDP packets. To be notified of this information, listen to LinkEvents
 on core.openflow_discovery.
-
 It's possible that some of this should be abstracted out into a generic
 Discovery module, or a Discovery superclass.
 """
@@ -56,11 +55,9 @@ class LLDPSender (object):
   def __init__ (self, send_cycle_time, ttl = 120):
     """
     Initialize an LLDP packet sender
-
     send_cycle_time is the time (in seconds) that this sender will take to
       send every discovery packet.  Thus, it should be the link timeout
       interval at most.
-
     ttl is the time (in seconds) for which a receiving LLDP agent should
       consider the rest of the data to be valid.  We don't use this, but
       other LLDP agents might.  Can't be 0 (this means revoke).
@@ -142,7 +139,6 @@ class LLDPSender (object):
   def _timer_handler (self):
     """
     Called by a timer to actually send packets.
-
     Picks the first packet off this cycle's list, sends it, and then puts
     it on the next-cycle list.  When this cycle's list is empty, starts
     the next cycle.
@@ -224,7 +220,6 @@ class Link (namedtuple("LinkBase",("dpid1","port1","dpid2","port2"))):
   def uni (self):
     """
     Returns a "unidirectional" version of this link
-
     The unidirectional versions of symmetric keys will be equal
     """
     pairs = list(self.end)
@@ -247,7 +242,6 @@ class Link (namedtuple("LinkBase",("dpid1","port1","dpid2","port2"))):
 class Discovery (EventMixin):
   """
   Component that attempts to discover network toplogy.
-
   Sends out specially-crafted LLDP packets, and monitors their arrival.
   """
 
@@ -483,4 +477,4 @@ def launch (no_flow = False, explicit_drop = True, link_timeout = None,
 
   core.registerNew(Discovery, explicit_drop=explicit_drop,
                    install_flow=install_flow, link_timeout=link_timeout,
-                   eat_early_packets=eat_early_packets)
+eat_early_packets=eat_early_packets)
