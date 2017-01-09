@@ -5,24 +5,23 @@ from pox.lib.util import dpid_to_str
 import pox.openflow.libopenflow_01 as of
 from pox.lib.addresses import IPAddr, EthAddr
 
+import ipaddress as Ip
 import networkx as nx            #graph library
 import matplotlib.pyplot as plt  #for ploting graph
 
 import random #debug
 
 log = core.getLogger()
-
 switch = {} #dizionario di switch dpid e' la chiave
 grafo = nx.Graph()          #grafo con vari attributi
 pathloss_gf = nx.Graph()    #grafo pesato secondo il pathloss
 delay_gf = nx.Graph()       #delay del link
 capacity_gf = nx.Graph()    #capacita' max link
 load_gf = nx.Graph()        #percentuale del caricamento del link in base alla sua capacita' max
-
 ip_to_switch = {} #dizionario in cui l'ip solo le chiavi e i valori gli elementi switch
 mac_to_ip = {} #per gli host
 
-__DEFAULT_ROULES_PRIORITY = 50
+__DEFAULT_RULES_PRIORITY = 50
 __DEFAULT_ARP_PATH = 150
 __DEFAULT_IP_PATH = 1000
 
@@ -65,7 +64,7 @@ def add_switch(dpid):
         capacity_gf.add_node(dpid)
         load_gf.add_node(dpid)
         log.debug("Add switch: %s", dpid_to_str(dpid))
-        add_default_roules(dpid)
+        add_default_rules(dpid)
 
 def save_graph():
     pos=nx.spring_layout(grafo) # positions for all nodes
@@ -198,18 +197,18 @@ def add_default_path(ip_src, ip_dst):
         msg.actions.append(of.ofp_action_output(port = pt_pre_hope ))
         core.openflow.sendToDPID(sw_list[i], msg)
 
-def add_default_roules(dpid):
+def add_default_rules(dpid):
     """
-    add default roules on new switch
+    add default rules on new switch
     arp request flooding
     """
     msg = of.ofp_flow_mod()
-    msg.priority = __DEFAULT_ROULES_PRIORITY
+    msg.priority = __DEFAULT_RULES_PRIORITY
     msg.match.dl_type = 0x806 #arp reques
     msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD ))
     core.openflow.sendToDPID(dpid, msg)
 
-    #MORE DEFAULT ROULES
+    #MORE DEFAULT RULES
 
 def ip_connected(ip1, ip2):
     try:
