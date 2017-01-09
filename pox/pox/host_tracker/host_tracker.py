@@ -308,9 +308,13 @@ class host_tracker (EventMixin):
       # new mapping
       ipEntry = IpEntry(hasARP)
       macEntry.ipAddrs[pckt_srcip] = ipEntry
+<<<<<<< HEAD
       log.info("Learned *2* %s got IP %s", str(macEntry), str(pckt_srcip) )
       #modifica introdotta da matteo, lancio un evento contenente l'ip che abbiamo
       self.raiseEventNoErrors(HostEvent, macEntry, join=True)
+=======
+      log.info("Learned %s got IP %s", str(macEntry), str(pckt_srcip) )
+>>>>>>> origin/ToMaster
     if hasARP:
       ipEntry.pings.received()
 
@@ -363,7 +367,11 @@ class host_tracker (EventMixin):
       # should we raise a NewHostFound event (at the end)?
       macEntry = MacEntry(dpid,inport,packet.src)
       self.entryByMAC[packet.src] = macEntry
+<<<<<<< HEAD
       log.info("Learned *1* %s", str(macEntry))
+=======
+      log.info("Learned %s", str(macEntry))
+>>>>>>> origin/ToMaster
       self.raiseEventNoErrors(HostEvent, macEntry, join=True)
     elif macEntry != (dpid, inport, packet.src):
       # there is already an entry of host with that MAC, but host has moved
