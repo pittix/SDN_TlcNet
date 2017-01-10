@@ -160,7 +160,7 @@ def _handle_desc_stats(event): ###WORKING
     return desc_dict
 
 class StatsHandler:
-stats = list(4) # create the stats
+    stats = list(4) # create the stats
     def __saveStats(sType,dpid, stats):
         if not (dpid in stats[sType]):
             stats[sType].update({dpid:""}) # add the dpid dictionary
@@ -185,8 +185,8 @@ stats = list(4) # create the stats
         if sType == StatsType.FLOW:
             return __getQueueStat(dpid,flow)
         # should never reach there
-        else
-            raise ValueError("stats type was not recognized, please choose one from StatsType")
+        else:
+                raise ValueError("stats type was not recognized, please choose one from StatsType")
 
     def __getQueueStat(dpid, port):
         if not dpid in stats[StatsType.QUEUE]: # check if I have some stats for this dpid
