@@ -3,8 +3,9 @@ from pox.lib.util import dpid_to_str
 import pox.openflow.libopenflow_01 as of
 import time
 from pox.lib.recoco import Timer  #per eseguire funzioni ricorsivamente
-import my_topo_SDN as myTopo;
+import my_topo_SDN as myTopo
 log = core.getLogger()
+from enum import Enum
 
 dpid = list()
 DESC_STATS = 1
@@ -160,7 +161,7 @@ def _handle_desc_stats(event): ###WORKING
     return desc_dict
 
 class StatsHandler:
-    stats = list(4) # create the stats
+    stats = list() # create the stats
     def __saveStats(sType,dpid, stats):
         if not (dpid in stats[sType]):
             stats[sType].update({dpid:""}) # add the dpid dictionary

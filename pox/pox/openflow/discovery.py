@@ -67,16 +67,14 @@ LINK_TIMEOUT = 10.0
 CPU_TIME_INTERVAL = 0.2
 
 log = core.getLogger()
-_
+
 class LLDPSender (object):
   """
 Cycles through a list of packets, sending them such that it completes the
 entire list every LLDP_SEND_CYCLE.
 """
-
   SendItem = namedtuple("LLDPSenderItem",
                       ('dpid','port_num','packet'))
-
 
   #NOTE: This class keeps the packets to send in a flat list, which makes
   # adding/removing them on switch join/leave or (especially) port
@@ -202,6 +200,7 @@ discovery application for topology inference
   _eventMixin_events = set([
     LinkEvent,
   ])
+  dports
   _dpidports
   _core_name = "openflow_discovery" # we want to be core.openflow_discovery
 
@@ -212,7 +211,7 @@ discovery application for topology inference
     self.install_flow = install_flow
 
     self._dps = set()
-    self._dpidports = dict()
+    self.dports = dict()
     self.adjacency = {} # From Link to time.time() stamp
     self._sender = LLDPSender()
     Timer(TIMEOUT_CHECK_PERIOD, self._expireLinks, recurring=True)
@@ -318,6 +317,7 @@ refreshed recently.
       (lldph.tlvs[2].tlv_type != pkt.lldp.TTL_TLV):
       log.error("lldp_input_handler invalid lldp packet")
       return
+
 
     def lookforDPID_Port():
       for key,value in self._dpidports.iteritems():
