@@ -5,7 +5,10 @@ import time
 from pox.lib.recoco import Timer  #per eseguire funzioni ricorsivamente
 import my_topo_SDN as myTopo
 log = core.getLogger()
-from enum import Enum
+
+# from enum import Enum
+# from graphUpdater import GraphUpdater
+UPD_GRAPH = 1 # every 10 seconds update the graph weight
 
 dpid = list()
 DESC_STATS = 1
@@ -14,8 +17,144 @@ TABLE_STATS = 4
 PORT_STATS = 8
 QUEUE_STATS = 16
 AGGREGATE_STATS=None
-UPD_GRAPH = 10 # every 10 seconds update the graph weight
 # class can be executed by pox core
+PORT=1
+TABLE=2
+FLOW=3
+QUEUE=0
+_stats = list() # create the stats
+_stats.append({})
+_stats.append({})
+_stats.append({})
+_stats.append({})
+_stats.append({})
+class StatsHandler:
+
+    @classmethod
+    def saveStats(cls,sType,dpid, stats):
+        # print _stats
+        if not dpid in _stats[sType]:
+            _stats[sType].update({dpid:""}) # add the dpid dictionary
+            _stats[sType][dpid]= {} #create the space to save the stat in this
+
+        _stats[sType][dpid]=stats # overwrite the stats
+        log.debug("added the stats for dpid %i",dpid)
+    @classmethod
+    def getStats(self,sType, dpid, port=None, table=None,flow=None):
+        """ Try to get the stats for the specified dpid. If no stats is found, return None
+        """
+        if sType is None:
+            raise ValueError("type cannot be None, use a type from StatsType")
+        if dpid is None:
+            raise ValueError("dpid cannot be None, use a valid dpid")
+
+        if sType == PORT:
+            return StatsHandler._getPortStat(dpid,port)
+        if sType == TABLE:
+            return StatsHandler._getTableStat(dpid,table)
+        if sType == QUEUE:
+            return StatsHandler._getQueueStat(dpid,port)
+        if sType == FLOW:
+            return StatsHandler._getQueueStat(dpid,flow)
+        # should never reach there
+        else:
+                raise ValueError("stats type was not recognized, please choose one from StatsType")
+    @classmethod
+    def _getQueueStat(cls,dpid, port):
+        if not dpid in _stats[QUEUE]: # check if I have some stats for this dpid
+            return None;
+        if port is None: # check if all stats are needed
+            return _stats[QUEUE][dpid] # list of dictionary
+        if not port in _stats[QUEUE][dpid]: # if no stats is available for that port
+            return None
+        return _stats[QUEUE][dpid][port-1] # dictionary with stats of that port
+    @classmethod
+    def _getTableStat(cls,dpid,table):
+        if not dpid in _stats[TABLE]: # check if I have some stats for this dpid
+            return None;
+        if table is None: # check if all stats are needed
+            return _stats[TABLE][dpid] # list of dictionary
+        if not table in _stats[TABLE][dpid]: # if no stats is available for that port
+            return None
+        return _stats[TABLE][dpid][table-1] # dictionary with stats of that port
+    @classmethod
+    def _getPortStat(cls,dpid, port=None):
+        """
+        Get the statistic about one or all port of a specific switch
+        indicated in the dpid. The return type is a dictionary (if only one port
+        has been specified. otherwise a list of dictionary) with those keys:
+        Pnum = port number; txB, rxB the number of bytes sent or received in that port
+        txP, rxP the number of packet sent or received on the port,
+        txE, rxE the number
+        of error occoured in transmission;
+        txDroped, rxDropped the number of packet dropped because of the queue
+        crcErr the number of errors encountered during crc checks
+        collision the number of collision happened
+
+        if no port is specified, the list has the port# in the port#-1 position of the list.
+
+        if no stats is available for this couple, return None
+        """
+        try:
+            print "getPortStats"
+            print _stats[PORT][dpid]
+        except:
+            print ("no port stats for switch %i",dpid )
+            return None;
+        if port is None:
+            return _stats[PORT][dpid] # list of dictionary
+        if not port in _stats[PORT][dpid]:
+            return None
+        return _stats[PORT][dpid][port-1] # dictionary
+    @classmethod
+    def _getFlowStat(cls,dpid,flow):
+        if not dpid in _stats[FLOW]:
+            return None;
+        if flow is None:
+            return _stats[FLOW][dpid] # list of dictionary
+        if not port in _stats[FLOW][dpid]:
+            return None
+        return _stats[FLOW][dpid][flow-1] # dictionary
+
+
+
+def updateGraph():
+    for dpid in myTopo.switch:
+        _setPktLoss(StatsHandler.getStats(PORT,dpid),dpid)
+
+def _setPktLoss(stat,dpid):
+    """
+    From each dpid gets the number of packets transmitted and how many of them were
+    corrupted. Then puts the weight on the graph edge
+    """
+    pErrRate=list()
+    if stat is None:
+        return; # there is no stat
+    for port in stat:
+        print port
+        errors=port["rxDropped"]+port["txDropped"]+port["rxErr"]+port["txErr"]
+        total = port["txPkts"]+port["rxPkts"] #total packet transmission
+        if(total == 0):
+            pErrRate.append(0)
+        else:
+            pErrRate.append(errors/total)
+    #get the link connection for a switch/port and update the weight
+    for i,PER in enumerate(pErrRate):
+        dpid2=myTopo.switch[dpid].port_dpid[i+1] # get the dpid connected to that port
+        myTopo.link_pathloss(dpid,dpid2,PER) # Update the packet error rate
+
+def _setLinkLoad(stat,dpid):
+    """
+    consider the load as how much te node queue is filled.
+    more it's filled, worse is the weight
+    """
+    if stat is None: return #no stats available
+
+    for portN,queue in enumerate(stats):
+        dpid2=myTopo.switch[dpid].port_dpid[portN]
+        mytopo.link_load(dpid, dpid2, queue["txE"]) # if the queue is full, packets will be dropped
+
+
 def launch():
     core.openflow.addListenerByName("FlowStatsReceived", _handle_flow_stats)
     core.openflow.addListenerByName("SwitchDescReceived", _handle_desc_stats)
@@ -24,7 +163,10 @@ def launch():
     core.openflow.addListenerByName("TableStatsReceived", _handle_table_stats)
     # core.openflow.addListenerByName("AggregateStatsReceived", _handle_aggregate_stats)
     core.openflow.addListenerByName("ConnectionUp", _handle_ConnUp)
-    Timer(5, _create_stat_request, recurring=True) #every 5 seconds execute _show_topo
+    Timer(2, _create_stat_request, recurring=True) #every 5 seconds execute _show_topo
+    # s= graphUpdater.GraphUpdater()
+    Timer(UPD_GRAPH, updateGraph,recurring = True)
+
 
 def _create_stat_request():
     for typ in [6 , 24]: # 2 stats per switch at every cycle
@@ -77,7 +219,7 @@ def _handle_flow_stats(event):
         #     flow_dict[i-1]["actions"][j-1][""] =
     # print ("FLOW_STATS")
     # print(flow_dict)
-    StatsHandler._saveStats(StatsType.FLOW, event.dpid, flow_dict)
+    StatsHandler.saveStats(FLOW, event.dpid, flow_dict)
 
     #print(stat_flow)
     #return None #todo
@@ -101,7 +243,7 @@ def _handle_port_stats(event):
         port_dict[i-1]["collision"] = port.collisions
     #print ("PORT_STATS")
     #print(stat_port)
-    StatsHandler._saveStats(StatsType.PORT, event.dpid, port_dict)
+    StatsHandler.saveStats(PORT, event.dpid, port_dict)
 
     #print(port_dict)
     #return None #todo
@@ -119,7 +261,7 @@ def _handle_queue_stats(event):
         queue_dict[i-1]["txPkts"] = port.tx_packets
         queue_dict[i-1]["txE"] = port.tx_errors
     #print ("Queue_STATS")
-    StatsHandler._saveStats(StatsType.QUEUE, event.dpid, queue_dict)
+    StatsHandler.saveStats(QUEUE, event.dpid, queue_dict)
 
     #return queue_dict
     #print(stat_queue)
@@ -137,7 +279,7 @@ def _handle_table_stats(event):
         tab_dict[i-1]["lookupCount"] = tab.lookup_count
         tab_dict[i-1]["matched"] = tab.matched_count
     #print ("Table_STATS")
-    StatsHandler._saveStats(StatsType.TABLE, event.dpid, tab_dict)
+    StatsHandler.saveStats(TABLE, event.dpid, tab_dict)
     #return None
 def _handle_aggregate_stats(event):
     stat_aggr = event.stats
@@ -159,92 +301,3 @@ def _handle_desc_stats(event): ###WORKING
     desc_dict["dp"]=stat_desc.dp_desc
     #print ("Description_STATS:")
     return desc_dict
-
-class StatsHandler:
-    stats = list() # create the stats
-    def _saveStats(sType,dpid, stats):
-        if not (dpid in stats[sType]):
-            stats[sType].update({dpid:""}) # add the dpid dictionary
-            stats[sType][dpid]= {} #create the space to save the stat in this
-        stats[sType][dpid]=stats # overwrite the stats
-        log.debug("added the stats for dpid %i",dpid)
-
-    def getStats(self,sType, dpid, port=None, table=None,flow=None):
-        """ Try to get the stats for the specified dpid. If no stats is found, return None
-        """
-        if sType is None:
-            raise ValueError("type cannot be None, use a type from StatsType")
-        if dpid is None:
-            raise ValueError("dpid cannot be None, use a valid dpid")
-
-        if sType == StatsType.PORT:
-            return _getPortStat(dpid,port)
-        if sType == StatsType.TABLE:
-            return _getTableStat(dpid,table)
-        if sType == StatsType.QUEUE:
-            return _getQueueStat(dpid,port)
-        if sType == StatsType.FLOW:
-            return _getQueueStat(dpid,flow)
-        # should never reach there
-        else:
-                raise ValueError("stats type was not recognized, please choose one from StatsType")
-
-    def _getQueueStat(dpid, port):
-        if not dpid in stats[StatsType.QUEUE]: # check if I have some stats for this dpid
-            return None;
-        if port is None: # check if all stats are needed
-            return stats[StatsType.QUEUE][dpid] # list of dictionary
-        if not port in stats[StatsType.QUEUE][dpid]: # if no stats is available for that port
-            return None
-        return stats[StatsType.QUEUE][dpid][port-1] # dictionary with stats of that port
-
-    def _getTableStat(dpid,table):
-        if not dpid in stats[StatsType.TABLE]: # check if I have some stats for this dpid
-            return None;
-        if table is None: # check if all stats are needed
-            return stats[StatsType.TABLE][dpid] # list of dictionary
-        if not table in stats[StatsType.TABLE][dpid]: # if no stats is available for that port
-            return None
-        return stats[StatsType.TABLE][dpid][table-1] # dictionary with stats of that port
-
-    def _getPortStat(dpid, port=None):
-        """
-        Get the statistic about one or all port of a specific switch
-        indicated in the dpid. The return type is a dictionary (if only one port
-        has been specified. otherwise a list of dictionary) with those keys:
-        Pnum = port number; txB, rxB the number of bytes sent or received in that port
-        txP, rxP the number of packet sent or received on the port,
-        txE, rxE the number
-        of error occoured in transmission;
-        txDroped, rxDropped the number of packet dropped because of the queue
-        crcErr the number of errors encountered during crc checks
-        collision the number of collision happened
-
-        if no port is specified, the list has the port# in the port#-1 position of the list.
-
-        if no stats is available for this couple, return None
-        """
-        if not dpid in stats[StatsType.PORT]:
-            return None;
-        if port is None:
-            return stats[StatsType.PORT][dpid] # list of dictionary
-        if not port in stats[StatsType.PORT][dpid]:
-            return None
-        return stats[StatsType.PORT][dpid][port-1] # dictionary
-
-    def _getFlowStat(dpid,flow):
-        if not dpid in stats[StatsType.FLOW]:
-            return None;
-        if flow is None:
-            return stats[StatsType.FLOW][dpid] # list of dictionary
-        if not port in stats[StatsType.FLOW][dpid]:
-            return None
-        return stats[StatsType.FLOW][dpid][flow-1] # dictionary
-
-
-
-class StatsType(Enum):
-    PORT=1
-    TABLE=2
-    #FLOW=3
-    QUEUE=0

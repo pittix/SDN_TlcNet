@@ -2,14 +2,18 @@
 import time
 import my_topo_SDN as myTopo
 import StatsHandler as SH
+from pox.lib.recoco import Timer  #for recoursive functions
+UPD_GRAPH = 10 # every 10 seconds update the graph weight
+
 
 class GraphUpdater:
     def __init__(self):
-        Timer(UPD_GRAPH, GraphUpdater._updateGraph,recurring = True)
+        Timer(UPD_GRAPH, GraphUpdater.updateGraph,recurring = True)
         self.handling = SH() #start the timer where gets the stats
-    def _updateGraph():
+    @classmethod
+    def updateGraph(a):
         for switch in myTopo.switch:
-            _setPktLoss(handlig.getStats(SH.StatsType.PORT,dpid),dpid)
+            GraphUpdater._setPktLoss(handling.getStats(SH.StatsType.PORT,dpid),dpid)
 
     def _setPktLoss(stat,dpid):
         """
@@ -17,8 +21,8 @@ class GraphUpdater:
         corrupted. Then puts the weight on the graph edge
         """
         if stat is None:
-        pErrRate=list()
-        return; # there is no stat
+            pErrRate=list()
+            return; # there is no stat
         for port in stat:
             errors=port["rxDropped"]+port["txDropped"]+port["rxErr"]+port["txErr"]
             total = port["txPkt"]+port["rxPkt"] #total packet transmission
