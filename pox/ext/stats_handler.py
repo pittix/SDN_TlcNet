@@ -130,18 +130,26 @@ def _setPktLoss(stat,dpid):
     pErrRate=list()
     if stat is None:
         return; # there is no stat
+        # stat is list of dictionaries
     for port in stat:
-        print port
-        errors=port["rxDropped"]+port["txDropped"]+port["rxErr"]+port["txErr"]
-        total = port["txPkts"]+port["rxPkts"] #total packet transmission
+        # print
+        try: # last value is an empty dictionary
+            errors= port.get("rxDropped") + port.get("txDropped") + port.get("rxErr") + port.get("txErr")
+            total = port.get("txPkts")+port.get("rxPkts") #total packet transmission
+        except:
+            total=0;
+
         if(total == 0):
             pErrRate.append(0)
         else:
             pErrRate.append(errors/total)
     #get the link connection for a switch/port and update the weight
     for i,PER in enumerate(pErrRate):
-        dpid2=myTopo.switch[dpid].port_dpid[i+1] # get the dpid connected to that port
-        myTopo.link_pathloss(dpid,dpid2,PER) # Update the packet error rate
+        try: #there isn't a link yet
+            dpid2=myTopo.switch[dpid].port_dpid[i+1] # get the dpid connected to that port
+            myTopo.link_pathloss(dpid,dpid2,PER) # Update the packet error rate
+        except:
+            pass;
 
 def _setLinkLoad(stat,dpid):
     """
