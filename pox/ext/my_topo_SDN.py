@@ -5,7 +5,7 @@ from pox.lib.util import dpid_to_str
 import pox.openflow.libopenflow_01 as of
 from pox.lib.addresses import IPAddr, EthAddr
 
-import ipaddress as Ip
+#import ipaddress as Ip
 import networkx as nx            #graph library
 import matplotlib.pyplot as plt  #for ploting graph
 
@@ -14,8 +14,8 @@ import random #debug
 log = core.getLogger()
 switch = {} #dizionario di switch dpid e' la chiave
 grafo = nx.Graph()          #grafo con vari attributi
-pathloss_gf = nx.Graph()    #grafo pesato secondo il pathloss
-delay_gf = nx.Graph()       #delay del link
+pck_error_gf = nx.Graph()    #grafo pesato secondo il pathloss
+#delay_gf = nx.Graph()       #delay del link
 capacity_gf = nx.Graph()    #capacita' max link
 load_gf = nx.Graph()        #percentuale del caricamento del link in base alla sua capacita' max
 ip_to_switch = {} #dizionario in cui l'ip solo le chiavi e i valori gli elementi switch
@@ -36,14 +36,14 @@ def add_host(dpid, mac, port, ip):
         mac_to_ip[mac] = ip
         ip_to_switch[ip] = switch[dpid]
         grafo.add_node(ip)
-        pathloss_gf.add_node(ip)
-        delay_gf.add_node(ip)
+        pck_error_gf.add_node(ip)
+        #delay_gf.add_node(ip)
         capacity_gf.add_node(ip)
         load_gf.add_node(ip)
 
         grafo.add_edge(dpid, ip)
-        pathloss_gf.add_edge(dpid, ip, weight=0)
-        delay_gf.add_edge(dpid, ip, weight=1)
+        pck_error_gf.add_edge(dpid, ip, weight=0)
+        #delay_gf.add_edge(dpid, ip, weight=1)
         capacity_gf.add_edge(dpid, ip, weight=10)
         load_gf.add_edge(dpid, ip, weight=0)
         log.debug("add host %s", ip)
@@ -59,8 +59,8 @@ def add_switch(dpid):
     else:
         switch[dpid] = my_Switch(dpid)
         grafo.add_node(dpid)
-        pathloss_gf.add_node(dpid)
-        delay_gf.add_node(dpid)
+        pck_error_gf.add_node(dpid)
+        #delay_gf.add_node(dpid)
         capacity_gf.add_node(dpid)
         load_gf.add_node(dpid)
         log.debug("Add switch: %s", dpid_to_str(dpid))
@@ -73,33 +73,30 @@ def save_graph():
     plt.savefig("grafo.png")      #salva l'immagine
     plt.clf()                     #elimina l'immagine corrente dalla libreria
 
-    edge_labels=nx.draw_networkx_edge_labels(pathloss_gf,pos,font_size=12)
-    nx.draw_networkx(pathloss_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    edge_labels=nx.draw_networkx_edge_labels(pck_error_gf,pos,font_size=12)
+    nx.draw_networkx(pck_error_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pathloss_gf.png")   #salva l'immagine
+    plt.savefig("pck_error_gf.png")   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
-    edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
-    nx.draw_networkx(pathloss_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
-    plt.axis('off')
-    plt.savefig("delay_gf.png")      #salva l'immagine
-    plt.clf()                        #elimina l'immagine corrente dalla libreria
+    # edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
+    # nx.draw_networkx(pck_error_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    # plt.axis('off')
+    # plt.savefig("delay_gf.png")      #salva l'immagine
+    # plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(capacity_gf,pos,font_size=12)
-    nx.draw_networkx(pathloss_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    nx.draw_networkx(pck_error_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
     plt.savefig("capacity_gf.png")      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels4=nx.draw_networkx_edge_labels(load_gf,pos,font_size=12)
-    nx.draw_networkx(pathloss_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    nx.draw_networkx(pck_error_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
     plt.savefig("load_gf.png")      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
-    # x = list(grafo.edges(data=True))
-    # for i in range (0, len(x)):
-    #     log.debug(x[i])
 
 def add_link(dpid1, port1, dpid2, port2):
     """
@@ -112,8 +109,8 @@ def add_link(dpid1, port1, dpid2, port2):
     switch[dpid2].port_dpid[port2] = dpid1
     switch[dpid2].dpid_port[dpid1] = port2
     grafo.add_edge(dpid1, dpid2)
-    pathloss_gf.add_edge(dpid1, dpid2, weight=random.randint(1,10))
-    delay_gf.add_edge(dpid1, dpid2, weight=1)
+    pck_error_gf.add_edge(dpid1, dpid2, weight=10)
+    #delay_gf.add_edge(dpid1, dpid2, weight=1)
     capacity_gf.add_edge(dpid1, dpid2, weight=10)
     load_gf.add_edge(dpid1, dpid2, weight=0)
 
@@ -121,8 +118,8 @@ def rm_link(dpid1, port1, dpid2, port2):
     x = True
     try:
         grafo.remove_edge(dpid1, dpid2)
-        pathloss_gf.remove_edge(dpid1, dpid2)
-        delay_gf.add_edge(dpid1, dpid2)
+        pck_error_gf.remove_edge(dpid1, dpid2)
+        #delay_gf.add_edge(dpid1, dpid2)
         capacity_gf.add_edge(dpid1, dpid2)
         load_gf.add_edge(dpid1, dpid2)
     except:
@@ -135,17 +132,17 @@ def rm_link(dpid1, port1, dpid2, port2):
         del switch[dpid2].port_dpid[port2]
         del switch[dpid2].dpid_port[dpid1]
 
-def link_delay(dpid1, dpid2, value):
-    """
-    modifica il peso del link del grafo delay_gf
-    """
-    delay_gf[dpid1][dpid2]['weight']=value
+# def link_delay(dpid1, dpid2, value):
+#     """
+#     modifica il peso del link del grafo delay_gf
+#     """
+#     delay_gf[dpid1][dpid2]['weight']=value
 
-def link_pathloss(dpid1, dpid2, value):
+def link_pck_error(dpid1, dpid2, value):
     """
-    modifica il peso del link del grafo pathloss_gf
+    modifica il peso del link del grafo pck_error_gf
     """
-    pathloss_gf[dpid1][dpid2]['weight']=value
+    pck_error_gf[dpid1][dpid2]['weight']=value
 
 def link_load(dpid1, dpid2, value):
     """
@@ -160,8 +157,8 @@ def link_capacity(dpid1, dpid2, value):
     capacity_gf[dpid1][dpid2]['weight']=value
 
 def add_default_path(ip_src, ip_dst):
-    #sw_list = nx.shortest_path(pathloss_gf,source=ip_src, target=ip_dst)
-    sw_list = nx.dijkstra_path(pathloss_gf, source=ip_src, target=ip_dst, weight='weight')
+    #sw_list = nx.shortest_path(pck_error_gf,source=ip_src, target=ip_dst)
+    sw_list = nx.dijkstra_path(pck_error_gf, source=ip_src, target=ip_dst, weight='weight')
     log.debug(sw_list) #show minimum path
     for i in range (1, len(sw_list) - 2):
         #installo i flussi da ip_src a ip_dst
