@@ -133,11 +133,10 @@ def _setPktLoss(stat,dpid):
         # stat is list of dictionaries
     for port in stat:
         # print
-        try: # last value is an empty dictionary
-            errors= port.get("rxDropped") + port.get("txDropped") + port.get("rxErr") + port.get("txErr")
-            total = port.get("txPkts")+port.get("rxPkts") #total packet transmission
-        except:
-            total=0;
+        # try: # last value is an empty dictionary
+        errors= port.get("rxDropped") + port.get("txDropped") + port.get("rxErr") + port.get("txErr")
+        total = port.get("txPkts")+port.get("rxPkts") #total packet transmission
+        # except:
 
         if(total == 0):
             pErrRate.append(0)
@@ -212,16 +211,16 @@ def _handle_flow_stats(event):
         flow_dict.append({})
         flow_dict[i-1]["tableID"] = rule.table_id
         #flow_dict[i-1]["pad"] = rule.pad
-        flow_dict[i-1]["match"] = rule.match.show()
-        flow_dict[i-1]["Tsecond"] = rule.duration_sec
-        flow_dict[i-1]["Tnanos"] = rule.duration_nsec
-        flow_dict[i-1]["Pri"] = rule.priority
-        flow_dict[i-1]["HardTimeout"] = rule.hard_timeout
-        flow_dict[i-1]["IdleTimeout"] = rule.idle_timeout
-        flow_dict[i-1]["cookie"] = rule.cookie
-        flow_dict[i-1]["pktCount"] = rule.packet_count
-        flow_dict[i-1]["byteCount"] = rule.byte_count
-        flow_dict[i-1]["actions"] = []
+        flow_dict[i]["match"] = rule.match.show()
+        flow_dict[i]["Tsecond"] = rule.duration_sec
+        flow_dict[i]["Tnanos"] = rule.duration_nsec
+        flow_dict[i]["Pri"] = rule.priority
+        flow_dict[i]["HardTimeout"] = rule.hard_timeout
+        flow_dict[i]["IdleTimeout"] = rule.idle_timeout
+        flow_dict[i]["cookie"] = rule.cookie
+        flow_dict[i]["pktCount"] = rule.packet_count
+        flow_dict[i]["byteCount"] = rule.byte_count
+        flow_dict[i]["actions"] = []
         # for j,act in enumerate(rule.actions):
         #     flow_dict[i-1]["actions"][j-1] = {}
         #     flow_dict[i-1]["actions"][j-1][""] =
@@ -236,19 +235,19 @@ def _handle_port_stats(event):
     port_dict=[]
     for i,port in enumerate(event.stats):
         port_dict.append({})
-        port_dict[i-1]["Pnum"] = port.port_no
-        port_dict[i-1]["rxPkts"] = port.rx_packets
-        port_dict[i-1]["txPkts"] = port.tx_packets
-        port_dict[i-1]["rxB"] = port.rx_bytes
-        port_dict[i-1]["txB"]= port.tx_bytes
-        port_dict[i-1]["rxDropped"] = port.rx_dropped
-        port_dict[i-1]["txDropped"]= port.tx_dropped
-        port_dict[i-1]["rxErr"] = port.rx_errors
-        port_dict[i-1]["txErr"] = port.tx_errors
-        port_dict[i-1]["rxFrameErr"] = port.rx_frame_err
-        port_dict[i-1]["rxOverErr"] = port.rx_over_err
-        port_dict[i-1]["crcErr"] = port.rx_crc_err
-        port_dict[i-1]["collision"] = port.collisions
+        port_dict[i]["Pnum"] = port.port_no
+        port_dict[i]["rxPkts"] = port.rx_packets
+        port_dict[i]["txPkts"] = port.tx_packets
+        port_dict[i]["rxB"] = port.rx_bytes
+        port_dict[i]["txB"]= port.tx_bytes
+        port_dict[i]["rxDropped"] = port.rx_dropped
+        port_dict[i]["txDropped"]= port.tx_dropped
+        port_dict[i]["rxErr"] = port.rx_errors
+        port_dict[i]["txErr"] = port.tx_errors
+        port_dict[i]["rxFrameErr"] = port.rx_frame_err
+        port_dict[i]["rxOverErr"] = port.rx_over_err
+        port_dict[i]["crcErr"] = port.rx_crc_err
+        port_dict[i]["collision"] = port.collisions
     #print ("PORT_STATS")
     #print(stat_port)
     StatsHandler.saveStats(PORT, event.dpid, port_dict)
@@ -263,11 +262,11 @@ def _handle_queue_stats(event):
     queue_dict=[]
     for i,port in enumerate(event.stats): #stats for each port' queue
         queue_dict.append({})
-        queue_dict[i-1]["Pnum"] = port.port_no
-        queue_dict[i-1]["length"] = port.queue_id
-        queue_dict[i-1]["txB"] = port.tx_bytes
-        queue_dict[i-1]["txPkts"] = port.tx_packets
-        queue_dict[i-1]["txE"] = port.tx_errors
+        queue_dict[i]["Pnum"] = port.port_no
+        queue_dict[i]["length"] = port.queue_id
+        queue_dict[i]["txB"] = port.tx_bytes
+        queue_dict[i]["txPkts"] = port.tx_packets
+        queue_dict[i]["txE"] = port.tx_errors
     #print ("Queue_STATS")
     StatsHandler.saveStats(QUEUE, event.dpid, queue_dict)
 
@@ -279,13 +278,13 @@ def _handle_table_stats(event):
     tab_dict=[]
     for i,tab in enumerate(event.stats): #extract all tables
         tab_dict.append({})
-        tab_dict[i-1]["table_id"] = tab.table_id
-        tab_dict[i-1]["name"] = tab.name
-        tab_dict[i-1]["wildcards"] = tab.wildcards
-        tab_dict[i-1]["maxEntries"] = tab.max_entries
-        tab_dict[i-1]["activeCount"] = tab.active_count
-        tab_dict[i-1]["lookupCount"] = tab.lookup_count
-        tab_dict[i-1]["matched"] = tab.matched_count
+        tab_dict[i]["table_id"] = tab.table_id
+        tab_dict[i]["name"] = tab.name
+        tab_dict[i]["wildcards"] = tab.wildcards
+        tab_dict[i]["maxEntries"] = tab.max_entries
+        tab_dict[i]["activeCount"] = tab.active_count
+        tab_dict[i]["lookupCount"] = tab.lookup_count
+        tab_dict[i]["matched"] = tab.matched_count
     #print ("Table_STATS")
     StatsHandler.saveStats(TABLE, event.dpid, tab_dict)
     #return None
