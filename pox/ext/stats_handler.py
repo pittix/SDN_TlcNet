@@ -77,7 +77,7 @@ def _handle_flow_stats(event):
         #     flow_dict[i-1]["actions"][j-1][""] =
     # print ("FLOW_STATS")
     # print(flow_dict)
-    StatsHandler.__saveStats(StatsType.FLOW, event.dpid, flow_dict)
+    StatsHandler._saveStats(StatsType.FLOW, event.dpid, flow_dict)
 
     #print(stat_flow)
     #return None #todo
@@ -101,7 +101,7 @@ def _handle_port_stats(event):
         port_dict[i-1]["collision"] = port.collisions
     #print ("PORT_STATS")
     #print(stat_port)
-    StatsHandler.__saveStats(StatsType.PORT, event.dpid, port_dict)
+    StatsHandler._saveStats(StatsType.PORT, event.dpid, port_dict)
 
     #print(port_dict)
     #return None #todo
@@ -119,7 +119,7 @@ def _handle_queue_stats(event):
         queue_dict[i-1]["txPkts"] = port.tx_packets
         queue_dict[i-1]["txE"] = port.tx_errors
     #print ("Queue_STATS")
-    StatsHandler.__saveStats(StatsType.QUEUE, event.dpid, queue_dict)
+    StatsHandler._saveStats(StatsType.QUEUE, event.dpid, queue_dict)
 
     #return queue_dict
     #print(stat_queue)
@@ -137,7 +137,7 @@ def _handle_table_stats(event):
         tab_dict[i-1]["lookupCount"] = tab.lookup_count
         tab_dict[i-1]["matched"] = tab.matched_count
     #print ("Table_STATS")
-    StatsHandler.__saveStats(StatsType.TABLE, event.dpid, tab_dict)
+    StatsHandler._saveStats(StatsType.TABLE, event.dpid, tab_dict)
     #return None
 def _handle_aggregate_stats(event):
     stat_aggr = event.stats
@@ -162,7 +162,7 @@ def _handle_desc_stats(event): ###WORKING
 
 class StatsHandler:
     stats = list() # create the stats
-    def __saveStats(sType,dpid, stats):
+    def _saveStats(sType,dpid, stats):
         if not (dpid in stats[sType]):
             stats[sType].update({dpid:""}) # add the dpid dictionary
             stats[sType][dpid]= {} #create the space to save the stat in this
@@ -178,18 +178,18 @@ class StatsHandler:
             raise ValueError("dpid cannot be None, use a valid dpid")
 
         if sType == StatsType.PORT:
-            return __getPortStat(dpid,port)
+            return _getPortStat(dpid,port)
         if sType == StatsType.TABLE:
-            return __getTableStat(dpid,table)
+            return _getTableStat(dpid,table)
         if sType == StatsType.QUEUE:
-            return __getQueueStat(dpid,port)
+            return _getQueueStat(dpid,port)
         if sType == StatsType.FLOW:
-            return __getQueueStat(dpid,flow)
+            return _getQueueStat(dpid,flow)
         # should never reach there
         else:
                 raise ValueError("stats type was not recognized, please choose one from StatsType")
 
-    def __getQueueStat(dpid, port):
+    def _getQueueStat(dpid, port):
         if not dpid in stats[StatsType.QUEUE]: # check if I have some stats for this dpid
             return None;
         if port is None: # check if all stats are needed
@@ -198,7 +198,7 @@ class StatsHandler:
             return None
         return stats[StatsType.QUEUE][dpid][port-1] # dictionary with stats of that port
 
-    def __getTableStat(dpid,table):
+    def _getTableStat(dpid,table):
         if not dpid in stats[StatsType.TABLE]: # check if I have some stats for this dpid
             return None;
         if table is None: # check if all stats are needed
@@ -207,7 +207,7 @@ class StatsHandler:
             return None
         return stats[StatsType.TABLE][dpid][table-1] # dictionary with stats of that port
 
-    def __getPortStat(dpid, port=None):
+    def _getPortStat(dpid, port=None):
         """
         Get the statistic about one or all port of a specific switch
         indicated in the dpid. The return type is a dictionary (if only one port
@@ -232,7 +232,7 @@ class StatsHandler:
             return None
         return stats[StatsType.PORT][dpid][port-1] # dictionary
 
-    def __getFlowStat(dpid,flow):
+    def _getFlowStat(dpid,flow):
         if not dpid in stats[StatsType.FLOW]:
             return None;
         if flow is None:
