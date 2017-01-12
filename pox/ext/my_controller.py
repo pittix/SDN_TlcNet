@@ -132,5 +132,4 @@ def launch():
     core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
     core.openflow.addListenerByName("ConnectionUp",_handle_ConnectionUp)
 
-
-Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
+    Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
