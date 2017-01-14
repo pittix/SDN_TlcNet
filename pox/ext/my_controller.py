@@ -57,6 +57,9 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
     topo.add_switch(event.connection.dpid)
     #verificare che sua uno switch openflow
     log.debug("Add switch: %s", dpid_to_str(event.connection.dpid))
+def _handle_ConnectionDown(event):
+    topo.rm_switch(event.connection.dpid)
+    log.debug("Rem switch: %s", dpid_to_str(event.connection.dpid))
 
 def _handle_PacketIn(event):
     packet = event.parsed       #this is the parsed packet data
@@ -131,5 +134,6 @@ def launch():
     core.openflow_discovery.addListenerByName("LinkEvent", _handle_LinkEvent)
     core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
     core.openflow.addListenerByName("ConnectionUp",_handle_ConnectionUp)
+    core.openflow.addListenerByName("ConnectionDown",_handle_ConnectionDown)
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
