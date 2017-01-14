@@ -96,10 +96,9 @@ class StatsHandler:
         if no stats is available for this couple, return None
         """
         try:
-            print "getPortStats"
-            print _stats[PORT][dpid]
+            a=_stats[PORT][dpid] # try to access the stat for a dpid
         except:
-            print ("no port stats for switch %i",dpid )
+            log.debug("no port stats for switch %i",dpid )
             return None;
         if port is None:
             return _stats[PORT][dpid] # list of dictionary
@@ -119,8 +118,8 @@ class StatsHandler:
 
 
 def updateGraph():
-    for dpid in myTopo.switch:
-        _setPktLoss(StatsHandler.getStats(PORT,dpid),dpid)
+    for sw in myTopo.switch:
+        _setPktLoss(StatsHandler.getStats(PORT,myTopo.switch[sw].dpid),myTopo.switch[sw].dpid)
 
 def _setPktLoss(stat,dpid):
     """
@@ -134,10 +133,9 @@ def _setPktLoss(stat,dpid):
     for port in stat:
         # print
         # try: # last value is an empty dictionary
-        errors= port.get("rxDropped") + port.get("txDropped") + port.get("rxErr") + port.get("txErr")
-        total = port.get("txPkts")+port.get("rxPkts") #total packet transmission
+        errors= port["rxDropped"] + port["txDropped"] + port["rxErr"] + port["txErr"]
+        total = port["txPkts"]+port["rxPkts"] #total packet transmission
         # except:
-
         if(total == 0):
             pErrRate.append(0)
         else:
@@ -158,7 +156,7 @@ def _setLinkLoad(stat,dpid):
     if stat is None: return #no stats available
 
     for portN,queue in enumerate(stats):
-        dpid2=myTopo.switch[dpid].port_dpid[portN]
+        dpid2=myTopo.switch[dpid].port_dpid[portN+1]
         mytopo.link_load(dpid, dpid2, queue["txE"]) # if the queue is full, packets will be dropped
 
 
@@ -177,8 +175,9 @@ def launch():
 
 def _create_stat_request():
     for typ in [6 , 24]: # 2 stats per switch at every cycle
-        for sw in dpid:
-            req_stats(sw, type=typ)#, port = 1, tab=1) I want all stats
+        for sw in myTopo.switch:
+            log.debug("created stat request for dpid %i in switch %s",myTopo.switch[sw].dpid,myTopo.switch[sw])
+            req_stats(myTopo.switch[sw].dpid, type=typ)#, port = 1, tab=1) I want all stats
             time.sleep(0.1) #don't fill the network with stats packets
 
 def _handle_ConnUp(event):
@@ -190,26 +189,29 @@ def req_stats(dpid, type=DESC_STATS, port=1, tab=1):
     Evaluates the request to be done
     """
     con=core.openflow.getConnection(dpid)
-    if type is None: #default do the aggregate
-        con.send(of.ofp_stats_request(body=of.ofp_aggregate_stats_request()))
-        return
-    if ((type & DESC_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_desc_stats_request()))
-    if ((type & FLOW_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_flow_stats_request()))
-    if ((type & TABLE_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_table_stats_request()))#table=tab)))
-    if ((type & PORT_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_port_stats_request()))#port = port)))
-    if ((type & QUEUE_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_queue_stats_request()))#port=port)))
+    try:
+        if type is None: #default do the aggregate
+            con.send(of.ofp_stats_request(body=of.ofp_aggregate_stats_request()))
+            return
+        if ((type & DESC_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_desc_stats_request()))
+        if ((type & FLOW_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_flow_stats_request()))
+        if ((type & TABLE_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_table_stats_request()))#table=tab)))
+        if ((type & PORT_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_port_stats_request()))#port = port)))
+        if ((type & QUEUE_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_queue_stats_request()))#port=port)))
+    except:
+        log.warning("Cannot send stats request. maybe the switch just disconnected")
 
 def _handle_flow_stats(event):
     #stat_flow = event.stats
     flow_dict=[]
     for i,rule in enumerate(event.stats):
         flow_dict.append({})
-        flow_dict[i-1]["tableID"] = rule.table_id
+        flow_dict[i]["tableID"] = rule.table_id
         #flow_dict[i-1]["pad"] = rule.pad
         flow_dict[i]["match"] = rule.match.show()
         flow_dict[i]["Tsecond"] = rule.duration_sec
