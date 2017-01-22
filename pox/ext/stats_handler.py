@@ -38,7 +38,7 @@ class StatsHandler:
             _stats[sType][dpid]= {} #create the space to save the stat in this
 
         _stats[sType][dpid]=stats # overwrite the stats
-        log.debug("added the stats for dpid %i",dpid)
+        #log.debug("added the stats for dpid %i",dpid)
     @classmethod
     def getStats(self,sType, dpid, port=None, table=None,flow=None):
         """ Try to get the stats for the specified dpid. If no stats is found, return None
@@ -176,7 +176,7 @@ def launch():
 def _create_stat_request():
     for typ in [6 , 24]: # 2 stats per switch at every cycle
         for sw in myTopo.switch:
-            log.debug("created stat request for dpid %i",myTopo.switch[sw].dpid)
+            #log.debug("created stat request for dpid %i",myTopo.switch[sw].dpid)
             req_stats(myTopo.switch[sw].dpid, type=typ)#, port = 1, tab=1) I want all stats
             time.sleep(0.1) #don't fill the network with stats packets
 
