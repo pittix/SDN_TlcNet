@@ -65,6 +65,13 @@ def add_switch(dpid):
         load_gf.add_node(dpid)
         log.debug("Add switch: %s", dpid_to_str(dpid))
         add_default_rules(dpid)
+def rm_switch(dpid):
+    grafo.remove_node(dpid)
+    pck_error_gf.remove_node(dpid)
+    #delay_gf.add_node(dpid)
+    capacity_gf.remove_node(dpid)
+    load_gf.remove_node(dpid)
+    del switch[dpid] #remove the disconnected switch
 
 def save_graph():
     pos=nx.spring_layout(grafo) # positions for all nodes
