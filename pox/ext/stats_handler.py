@@ -185,9 +185,13 @@ def  _setAvgPktSize(stat,dpid):
 def _setTraffic(flow_stat,dpid):
     #from flow stat, I can see if the node is making a lot of traffic
     if flow_stat is None: return # no stat available
-    avgTrafport = {}
-    for table in flow_stat:
-        avgTraf[table[actions].in_port] += 8*table["byteCount"]/table["Tsecond"] # need a table for each rule
+    avgTrafPort = {}
+    for table in flow_stat: # fill the throughput of a rule for that port
+        avgTrafPort[table[actions].port] += 8*table["byteCount"]/table["Tsecond"] # need a table for each rule
+    for port,avg in avgTrafPort:
+        dpid2=myTopo.switch[dpid].port_dpid[port]
+        #set the traffic load [0;1] 0= no traffic. 1= link is full
+        myTopo.link_capacity(dpid, dpid2, avg/myTopo.switch[dpid].port_capacity[port])
 
 
 
@@ -257,7 +261,7 @@ def _handle_flow_stats(event):
         for j,act in enumerate(rule.actions):
             flow_dict[i-1]["actions"] = []
             flow_dict[i-1]["actions"].append(act)
-            print(act)
+            print(act.show())
             #flow_dict[i-1]["actions"][j-1][""] =act[]
     # print ("FLOW_STATS")
     # print(flow_dict)
