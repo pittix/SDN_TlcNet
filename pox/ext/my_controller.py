@@ -31,12 +31,18 @@ from pox.lib.packet.ipv4 import ipv4
 from pox.lib.packet.arp import arp
 from pox.lib.addresses import IPAddr, EthAddr
 from pox.lib.util import str_to_dpid
-#import time
+import ipaddress as IP
 import multiprocessing #multiprocess
 
 import my_topo_SDN as topo #new class
 
 log = core.getLogger()
+
+SDN_network = "10.0.0.0/24"
+
+PCK_ERROR_OPT = 1
+DELAY_OPT     = 2
+DEFAULT_OPT   = 3
 
 def _handle_LinkEvent(event):
     """
@@ -77,6 +83,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
 
     #verificare che sua uno switch openflow
     log.debug("Add switch: %s", dpid_to_str(event.connection.dpid))
+
 def _handle_ConnectionDown(event):
     topo.rm_switch(event.connection.dpid)
     log.debug("Rem switch: %s", dpid_to_str(event.connection.dpid))
@@ -96,7 +103,6 @@ def _handle_PacketIn(event):
 
 
 def _handle_arp_packet(event):
-    #log.debug("ARP_TYPE packet arrived")
     packet = event.parsed
 
     if packet.payload.opcode == arp.REQUEST:
@@ -104,31 +110,54 @@ def _handle_arp_packet(event):
         ip_dst = packet.payload.protodst
 
 def _handle_ip_packet(event):
-    #log.debug("IP_TYPE packet arrived")
+
     packet = event.parsed
     src_mac = packet.src	    #mac del sorgente del pacchetto
     dst_mac = packet.dst	    #mac del destinatario del pacchetto
-    ip_packet = packet.find('ipv4')
+    ip_pck = packet.find('ipv4')
 
-    ip_src = ip_packet.srcip #ip sorgente
-    ip_dst = ip_packet.dstip #ip destinatario
-    log.debug("ip_src presente? %s" , topo.is_logged(ip_src))
-    log.debug("ip_dst presente? %s" , topo.is_logged(ip_dst))
+    ip_src = ip_pck.srcip #ip sorgente
+    ip_dst = ip_pck.dstip #ip destinatario
 
-    #verifico se l'utente src e' gia' loggato nella rete
-    if topo.is_logged(ip_src):
-        log.debug("\n %s gia' presente nella rete", ip_src)
+    if (IP.IPv4Address(ip_src) == IP.IPv4Address('100.100.100.0') or IP.IPv4Address(ip_src) == IP.IPv4Address('100.100.100.1')):
+        """ pacchetti di controllo """
+        #non esegue nulla in quanto se ne occupa network_performance
+        pass
+    elif (IP.IPv4Address(ip_src) in IP.IPv4Network(SDN_network)):
+        """ sorgente e' nella sotto rete SDN """
+        #verifico se gia' presente nel grafo
+        if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
+            pass
+        else:
+            topo.add_host(event.connection.dpid, src_mac, event.port, ip_pck.srcip)
+            log.debug("\n %s aggiunto nella rete", ip_src)
+
+        if (IP.IPv4Address(ip_dst) in IP.IPv4Network(SDN_network)):
+            """ destinatario nella sotto rete SDN """
+            if topo.is_logged(ip_dst):
+                #destinatario presente posso farli connettere
+                if topo.ip_connected(ip_src, ip_dst):
+                    #installa le rotte di default con la minimum path
+                    #scegliere la path in base a qualche metrica particolare
+                    topo.add_path(ip_src, ip_dst, DEFAULT_OPT)
+                else:
+                    log.debug("Some errors occur in the graph path")
+            else:
+                #destinatario interno non ancora loggato, potrei cercarlo ma per ora no
+                log.debug("Ip_dst interno ma non ancora loggato: %s", ip_dst)
+
+        else:
+            """ destinatario fuori dalla sottorete SDN """
+            #lo indirizzo nel gateway di default
+            topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
     else:
-        topo.add_host(event.connection.dpid, src_mac, event.port, ip_src )
-        log.debug("\n %s aggiunto nella rete", ip_src)
-
-    if topo.ip_connected(ip_src, ip_dst):
-        #installa le rotte di default con la minimum path
-        topo.add_default_path(ip_src, ip_dst)
-    else:
-        #i due host non sono connessi quindi o devo cercare il secondo
-        #trovare un modo, per ora possono comunicare solo se hanno gia' fatto un tentativo di accesso alla related
-        log.debug("path NON presente nel grafo")
+        """ sorgente del pacchetto proveniente dall'esterno della sottorete SDN """
+        if topo.is_logged(ip_dst):
+            #destinatario presente posso farli connettere
+            topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
+        else:
+            #destinatario interno non ancora loggato, potrei cercarlo ma per ora no
+            log.debug("Ip_dst interno ma non ancora loggato: %s", ip_dst)
 
 def _show_topo():
     """

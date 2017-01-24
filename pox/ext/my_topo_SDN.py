@@ -14,8 +14,9 @@ import random #debug
 log = core.getLogger()
 switch = {} #dizionario di switch dpid e' la chiave
 grafo = nx.Graph()          #grafo con vari attributi
+switch_gf = nx.Graph()      #grafo con solo gli switch
 pck_error_gf = nx.Graph()    #grafo pesato secondo il pathloss
-#delay_gf = nx.Graph()       #delay del link
+delay_gf = nx.Graph()       #delay del link
 capacity_gf = nx.Graph()    #capacita' max link
 load_gf = nx.Graph()        #percentuale del caricamento del link in base alla sua capacita' max
 ip_to_switch = {} #dizionario in cui l'ip solo le chiavi e i valori gli elementi switch
@@ -24,6 +25,11 @@ mac_to_ip = {} #per gli host
 __DEFAULT_RULES_PRIORITY = 50
 __DEFAULT_ARP_PATH = 150
 __DEFAULT_IP_PATH = 1000
+
+
+PCK_ERROR_OPT = 1
+DELAY_OPT     = 2
+DEFAULT_OPT   = 3
 
 def add_host(dpid, mac, port, ip):
     """
@@ -37,13 +43,11 @@ def add_host(dpid, mac, port, ip):
         ip_to_switch[ip] = switch[dpid]
         grafo.add_node(ip)
         pck_error_gf.add_node(ip)
-        #delay_gf.add_node(ip)
         capacity_gf.add_node(ip)
         load_gf.add_node(ip)
 
         grafo.add_edge(dpid, ip)
         pck_error_gf.add_edge(dpid, ip, weight=0)
-        #delay_gf.add_edge(dpid, ip, weight=1)
         capacity_gf.add_edge(dpid, ip, weight=10)
         load_gf.add_edge(dpid, ip, weight=0)
         log.debug("add host %s", ip)
@@ -60,16 +64,18 @@ def add_switch(dpid):
         switch[dpid] = my_Switch(dpid)
         grafo.add_node(dpid)
         pck_error_gf.add_node(dpid)
-        #delay_gf.add_node(dpid)
+        delay_gf.add_node(dpid)
         capacity_gf.add_node(dpid)
         load_gf.add_node(dpid)
+        switch_gf.add_node(dpid)
         log.debug("Add switch: %s", dpid_to_str(dpid))
         add_default_rules(dpid)
 def rm_switch(dpid):
     grafo.remove_node(dpid)
     pck_error_gf.remove_node(dpid)
-    #delay_gf.add_node(dpid)
+    delay_gf.add_node(dpid)
     capacity_gf.remove_node(dpid)
+    switch_gf.remove_node(dpid)
     load_gf.remove_node(dpid)
     del switch[dpid] #remove the disconnected switch
 
@@ -86,16 +92,22 @@ def save_graph():
     plt.savefig("pck_error_gf.png")   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
-    # edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
-    # nx.draw_networkx(pck_error_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
-    # plt.axis('off')
-    # plt.savefig("delay_gf.png")      #salva l'immagine
-    # plt.clf()                        #elimina l'immagine corrente dalla libreria
+    edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
+    nx.draw_networkx(delay_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    plt.axis('off')
+    plt.savefig("delay_gf.png")      #salva l'immagine
+    plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(capacity_gf,pos,font_size=12)
-    nx.draw_networkx(capacity_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=10,font_family='sans-serif')    #stampa anche il grafo
+    nx.draw_networkx(capacity_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
     plt.savefig("capacity_gf.png")      #salva l'immagine
+    plt.clf()                        #elimina l'immagine corrente dalla libreria
+
+    edge_labels3=nx.draw_networkx_edge_labels(switch_gf,pos,font_size=12)
+    nx.draw_networkx(switch_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    plt.axis('off')
+    plt.savefig("switch_gf.png")      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels4=nx.draw_networkx_edge_labels(load_gf,pos,font_size=12)
@@ -117,7 +129,8 @@ def add_link(dpid1, port1, dpid2, port2):
     switch[dpid2].dpid_port[dpid1] = port2
     grafo.add_edge(dpid1, dpid2)
     pck_error_gf.add_edge(dpid1, dpid2, weight=10)
-    #delay_gf.add_edge(dpid1, dpid2, weight=1)
+    delay_gf.add_edge(dpid1, dpid2, weight=1)
+    switch_gf.add_edge(dpid1, dpid2, weight=1)
     capacity_gf.add_edge(dpid1, dpid2, weight=10)
     load_gf.add_edge(dpid1, dpid2, weight=0)
 
@@ -126,7 +139,8 @@ def rm_link(dpid1, port1, dpid2, port2):
     try:
         grafo.remove_edge(dpid1, dpid2)
         pck_error_gf.remove_edge(dpid1, dpid2)
-        #delay_gf.add_edge(dpid1, dpid2)
+        delay_gf.add_edge(dpid1, dpid2)
+        switch_gf.add_edge(dpid1, dpid2)
         capacity_gf.add_edge(dpid1, dpid2)
         load_gf.add_edge(dpid1, dpid2)
     except:
@@ -139,11 +153,11 @@ def rm_link(dpid1, port1, dpid2, port2):
         del switch[dpid2].port_dpid[port2]
         del switch[dpid2].dpid_port[dpid1]
 
-# def link_delay(dpid1, dpid2, value):
-#     """
-#     modifica il peso del link del grafo delay_gf
-#     """
-#     delay_gf[dpid1][dpid2]['weight']=value
+def link_delay(dpid1, dpid2, value):
+    """
+    modifica il peso del link del grafo delay_gf
+    """
+    delay_gf[dpid1][dpid2]['weight']=value
 
 def link_pck_error(dpid1, dpid2, value):
     """
@@ -163,9 +177,23 @@ def link_capacity(dpid1, dpid2, value):
     """
     capacity_gf[dpid1][dpid2]['weight']=value
 
-def add_default_path(ip_src, ip_dst):
+def get_gf(option):
+    if option == PCK_ERROR_OPT:
+        return pck_error_gf
+    elif option == DELAY_OPT:
+        return delay_gf
+    elif option == DEFAULT_OPT:
+        return grafo
+
+def add_path_to_gw(ip_int, ip_ext, option):
+
+    path = nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_ext, weight='weight')
+    #devo fare in modo di riconoscere uno switch come gateway
+    #capire nella realta' come arrivano i dpid
+
+def add_path(ip_src, ip_dst, option):
     #sw_list = nx.shortest_path(pck_error_gf,source=ip_src, target=ip_dst)
-    sw_list = nx.dijkstra_path(pck_error_gf, source=ip_src, target=ip_dst, weight='weight')
+    sw_list = nx.dijkstra_path(get_gf(option), source=ip_src, target=ip_dst, weight='weight')
     log.debug(sw_list) #show minimum path
     for i in range (1, len(sw_list) - 2):
         #installo i flussi da ip_src a ip_dst
@@ -210,6 +238,14 @@ def add_default_rules(dpid):
     msg.priority = __DEFAULT_RULES_PRIORITY
     msg.match.dl_type = 0x806 #arp reques
     msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD ))
+    core.openflow.sendToDPID(dpid, msg)
+
+    #msg del delay discovery
+    msg = of.ofp_flow_mod()
+    msg.priority = 5000
+    msg.match.dl_type = 0x800 #ip type
+    msg.match.nw_src = IPAddr("100.100.100.1")
+    msg.actions.append(of.ofp_action_output(port = of.OFPP_CONTROLLER ))
     core.openflow.sendToDPID(dpid, msg)
 
     #MORE DEFAULT RULES
