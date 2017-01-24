@@ -234,6 +234,9 @@ class my_Switch():
         self.port_dpid = {}
         self.port_mac = {}
         self.mac_port = {}
+        self.port_capacity={} # maximum port capacity in Mbps
+        self.host_gaming={} # if port has a gaming host, value is True
+        self.heavy_traffic={} # if port has an host who is making a lot of traffic, here is true
 
     def add_host(self, mac, porta, ip):
         "add host on the switch's port"

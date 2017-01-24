@@ -55,6 +55,26 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
     handle connection up from switch
     """
     topo.add_switch(event.connection.dpid)
+    for port in event.ofp.ports:
+        if ((port.state & of.ofp_port_state_rev_map["OFPPS_LINK_DOWN"]) and (port.port_no<10000)):
+             log.info("port %i  is down",port.port_no)
+        #check only current status. ignore maximum status. it's more realistic
+        if(port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_HD"] or
+                port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_FD"]):
+            topo.switch[event.connection.dpid].port_capacity = 10; #TODO constants
+            log.info("port %i is a 10Mbps",port.port_no)
+        elif(port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_HD"] or
+            port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_FD"]):
+            topo.switch[event.connection.dpid].port_capacity = 100; #TODO constants
+            log.info("port %i is a 100Mbps",port.port_no)
+        elif(port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_HD"] or
+            port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_FD"]):
+            topo.switch[event.connection.dpid].port_capacity = 1000; #TODO constants
+            log.info("port %i is a 1Gbps",port.port_no)
+        elif(port.curr & of.ofp_port_features_rev_map["OFPPF_10GB_FD"]):
+            topo.switch[event.connection.dpid].port_capacity = 10000; #TODO constants
+            log.info("port %i is a 10Gbps",port.port_no)
+
     #verificare che sua uno switch openflow
     log.debug("Add switch: %s", dpid_to_str(event.connection.dpid))
 def _handle_ConnectionDown(event):
@@ -92,7 +112,6 @@ def _handle_ip_packet(event):
 
     ip_src = ip_packet.srcip #ip sorgente
     ip_dst = ip_packet.dstip #ip destinatario
-
     log.debug("ip_src presente? %s" , topo.is_logged(ip_src))
     log.debug("ip_dst presente? %s" , topo.is_logged(ip_dst))
 
@@ -100,7 +119,7 @@ def _handle_ip_packet(event):
     if topo.is_logged(ip_src):
         log.debug("\n %s gia' presente nella rete", ip_src)
     else:
-        topo.add_host(event.connection.dpid, src_mac, event.port, ip_packet.srcip)
+        topo.add_host(event.connection.dpid, src_mac, event.port, ip_src )
         log.debug("\n %s aggiunto nella rete", ip_src)
 
     if topo.ip_connected(ip_src, ip_dst):

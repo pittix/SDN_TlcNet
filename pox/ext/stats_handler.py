@@ -4,11 +4,13 @@ import pox.openflow.libopenflow_01 as of
 import time
 from pox.lib.recoco import Timer  #per eseguire funzioni ricorsivamente
 import my_topo_SDN as myTopo
+from pox.lib.addresses import IPAddr
 log = core.getLogger()
 
 # from enum import Enum
 # from graphUpdater import GraphUpdater
 UPD_GRAPH = 1 # every 10 seconds update the graph weight
+GAMING_THRES = 10 #bytes per packet
 
 dpid = list()
 DESC_STATS = 1
@@ -119,7 +121,9 @@ class StatsHandler:
 
 def updateGraph():
     for sw in myTopo.switch:
-        _setPktLoss(StatsHandler.getStats(PORT,myTopo.switch[sw].dpid),myTopo.switch[sw].dpid)
+        st = StatsHandler.getStats(PORT,myTopo.switch[sw].dpid)
+        _setPktLoss( st , myTopo.switch[sw].dpid )
+        _setAvgPktSize(st , myTopo.switch[sw].dpid )
 
 def _setPktLoss(stat,dpid):
     """
@@ -156,8 +160,35 @@ def _setLinkLoad(stat,dpid):
     if stat is None: return #no stats available
 
     for portN,queue in enumerate(stats):
-        dpid2=myTopo.switch[dpid].port_dpid[portN+1]
-        mytopo.link_load(dpid, dpid2, queue["txE"]) # if the queue is full, packets will be dropped
+         dpid2=myTopo.switch[dpid].port_dpid[portN+1]
+         mytopo.link_load(dpid, dpid2, queue["txE"]) # if the queue is full, packets will be dropped
+
+
+def  _setAvgPktSize(stat,dpid):
+    if stat is None: return
+    for port in stat:
+        #check if it's connected to an host
+        #log.debug("*** portN: %d",port["Pnum"])
+        if not port["Pnum"] in myTopo.switch[dpid].port_dpid.keys():
+            continue # this port number doesn't exist in the switch
+        if isinstance(myTopo.switch[dpid].port_dpid[port["Pnum"]] , IPAddr ):
+            #if so, calculate the average packet size. if is smaller than a threshold
+            #the node is in gaming mode
+            avgPktS=port["rxB"]/port["rxPkts"]
+            if(avgPktS<GAMING_THRES): #byte for packet
+                log.debug("on dpid %s there's an host who is gaming. pktSize is %.3f",dpid_to_str(dpid),avgPktS)
+                myTopo.switch[dpid].host_gaming[port["Pnum"]] = True
+            else:
+                myTopo.switch[dpid].host_gaming[port["Pnum"]] = False
+
+
+def _setTraffic(flow_stat,dpid):
+    #from flow stat, I can see if the node is making a lot of traffic
+    if flow_stat is None: return # no stat available
+    avgTrafport = {}
+    for table in flow_stat:
+        avgTraf[table[actions].in_port] += 8*table["byteCount"]/table["Tsecond"] # need a table for each rule
+
 
 
 def launch():
@@ -223,9 +254,11 @@ def _handle_flow_stats(event):
         flow_dict[i]["pktCount"] = rule.packet_count
         flow_dict[i]["byteCount"] = rule.byte_count
         flow_dict[i]["actions"] = []
-        # for j,act in enumerate(rule.actions):
-        #     flow_dict[i-1]["actions"][j-1] = {}
-        #     flow_dict[i-1]["actions"][j-1][""] =
+        for j,act in enumerate(rule.actions):
+            flow_dict[i-1]["actions"] = []
+            flow_dict[i-1]["actions"].append(act)
+            print(act)
+            #flow_dict[i-1]["actions"][j-1][""] =act[]
     # print ("FLOW_STATS")
     # print(flow_dict)
     StatsHandler.saveStats(FLOW, event.dpid, flow_dict)
