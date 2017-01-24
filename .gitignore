@@ -4,6 +4,7 @@
 */*/*.pyo
 */*/*.pyc
 */*.pyo     
-*/*.pyc     
+*/*.pyc
+pox/ext/*.pyc   
 LICENCE
 
