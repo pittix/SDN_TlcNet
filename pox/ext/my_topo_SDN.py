@@ -93,13 +93,13 @@ def save_graph():
     # plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(capacity_gf,pos,font_size=12)
-    nx.draw_networkx(pck_error_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    nx.draw_networkx(capacity_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=10,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
     plt.savefig("capacity_gf.png")      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels4=nx.draw_networkx_edge_labels(load_gf,pos,font_size=12)
-    nx.draw_networkx(pck_error_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    nx.draw_networkx(load_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
     plt.savefig("load_gf.png")      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria

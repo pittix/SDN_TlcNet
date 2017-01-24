@@ -124,6 +124,7 @@ def updateGraph():
         st = StatsHandler.getStats(PORT,myTopo.switch[sw].dpid)
         _setPktLoss( st , myTopo.switch[sw].dpid )
         _setAvgPktSize(st , myTopo.switch[sw].dpid )
+        _setTraffic(StatsHandler.getStats(FLOW,myTopo.switch[sw].dpid),myTopo.switch[sw].dpid)
 
 def _setPktLoss(stat,dpid):
     """
@@ -185,13 +186,18 @@ def  _setAvgPktSize(stat,dpid):
 def _setTraffic(flow_stat,dpid):
     #from flow stat, I can see if the node is making a lot of traffic
     if flow_stat is None: return # no stat available
-    avgTrafPort = {}
+    avgTrafPort=0
     for table in flow_stat: # fill the throughput of a rule for that port
-        avgTrafPort[table[actions].port] += 8*table["byteCount"]/table["Tsecond"] # need a table for each rule
-    for port,avg in avgTrafPort:
-        dpid2=myTopo.switch[dpid].port_dpid[port]
-        #set the traffic load [0;1] 0= no traffic. 1= link is full
-        myTopo.link_capacity(dpid, dpid2, avg/myTopo.switch[dpid].port_capacity[port])
+        log.debug(flow_stat)
+        log.debug("---")
+        log.debug(table)
+        log.debug("*** p: %i bc: %i  ts: %i",table["actions"].port,table["byteCount"],table["Tsecond"])
+        avgTrafPort += 8*10^9*table["byteCount"]/table["Tnanos"] # need a table for each rule
+    #log.debug(avgTrafPort)
+    #for port,avg in avgTrafPort:
+        dpid2=myTopo.switch[dpid].port_dpid[table["actions"]]
+    #set the traffic load [0;1] 0= no traffic. 1= link is full
+        myTopo.link_capacity(dpid, dpid2, avgTrafPort/myTopo.switch[dpid].port_capacity[port])
 
 
 
@@ -259,9 +265,7 @@ def _handle_flow_stats(event):
         flow_dict[i]["byteCount"] = rule.byte_count
         flow_dict[i]["actions"] = []
         for j,act in enumerate(rule.actions):
-            flow_dict[i-1]["actions"] = []
-            flow_dict[i-1]["actions"].append(act)
-            print(act.show())
+            flow_dict[i-1]["actions"] = act.port
             #flow_dict[i-1]["actions"][j-1][""] =act[]
     # print ("FLOW_STATS")
     # print(flow_dict)
