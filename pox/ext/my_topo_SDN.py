@@ -48,7 +48,7 @@ def add_host(dpid, mac, port, ip):
 
         grafo.add_edge(dpid, ip)
         pck_error_gf.add_edge(dpid, ip, weight=0)
-        capacity_gf.add_edge(dpid, ip, weight=10)
+        capacity_gf.add_edge(dpid, ip, weight=0)
         load_gf.add_edge(dpid, ip, weight=0)
         log.debug("add host %s", ip)
     else:
@@ -128,10 +128,10 @@ def add_link(dpid1, port1, dpid2, port2):
     switch[dpid2].port_dpid[port2] = dpid1
     switch[dpid2].dpid_port[dpid1] = port2
     grafo.add_edge(dpid1, dpid2)
-    pck_error_gf.add_edge(dpid1, dpid2, weight=10)
+    pck_error_gf.add_edge(dpid1, dpid2, weight=0)
     delay_gf.add_edge(dpid1, dpid2, weight=1)
     switch_gf.add_edge(dpid1, dpid2, weight=1)
-    capacity_gf.add_edge(dpid1, dpid2, weight=10)
+    capacity_gf.add_edge(dpid1, dpid2, weight=0)
     load_gf.add_edge(dpid1, dpid2, weight=0)
 
 def rm_link(dpid1, port1, dpid2, port2):

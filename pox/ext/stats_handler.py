@@ -29,7 +29,7 @@ _stats.append({})
 _stats.append({})
 _stats.append({})
 _stats.append({})
-_stats.append({})
+# _stats.append({})
 class StatsHandler:
 
     @classmethod
@@ -40,7 +40,8 @@ class StatsHandler:
             _stats[sType][dpid]= {} #create the space to save the stat in this
 
         _stats[sType][dpid]=stats # overwrite the stats
-        #log.debug("added the stats for dpid %i",dpid)
+
+
     @classmethod
     def getStats(self,sType, dpid, port=None, table=None,flow=None):
         """ Try to get the stats for the specified dpid. If no stats is found, return None
@@ -57,7 +58,7 @@ class StatsHandler:
         if sType == QUEUE:
             return StatsHandler._getQueueStat(dpid,port)
         if sType == FLOW:
-            return StatsHandler._getQueueStat(dpid,flow)
+            return StatsHandler._getFlowStat(dpid,flow)
         # should never reach there
         else:
                 raise ValueError("stats type was not recognized, please choose one from StatsType")
@@ -111,8 +112,8 @@ class StatsHandler:
     def _getFlowStat(cls,dpid,flow):
         if not dpid in _stats[FLOW]:
             return None;
-        if flow is None:
-            return _stats[FLOW][dpid] # list of dictionary
+        # if flow is None:
+        return _stats[FLOW][dpid] # list of dictionary
         if not port in _stats[FLOW][dpid]:
             return None
         return _stats[FLOW][dpid][flow-1] # dictionary
@@ -125,7 +126,6 @@ def updateGraph():
         _setPktLoss( st , myTopo.switch[sw].dpid )
         _setAvgPktSize(st , myTopo.switch[sw].dpid )
         _setTraffic(StatsHandler.getStats(FLOW,myTopo.switch[sw].dpid),myTopo.switch[sw].dpid)
-
 def _setPktLoss(stat,dpid):
     """
     From each dpid gets the number of packets transmitted and how many of them were
@@ -188,16 +188,18 @@ def _setTraffic(flow_stat,dpid):
     if flow_stat is None: return # no stat available
     avgTrafPort=0
     for table in flow_stat: # fill the throughput of a rule for that port
-        log.debug(flow_stat)
-        log.debug("---")
-        log.debug(table)
-        log.debug("*** p: %i bc: %i  ts: %i",table["actions"].port,table["byteCount"],table["Tsecond"])
+        if table["actions"]>10000:
+            continue
+        log.debug("*** p: %i bc: %i  ts: %i",table["actions"],table["byteCount"],table["Tsecond"])
         avgTrafPort += 8*10^9*table["byteCount"]/table["Tnanos"] # need a table for each rule
-    #log.debug(avgTrafPort)
+        log.debug("average pkt size %.4f",avgTrafPort)
     #for port,avg in avgTrafPort:
+
         dpid2=myTopo.switch[dpid].port_dpid[table["actions"]]
     #set the traffic load [0;1] 0= no traffic. 1= link is full
-        myTopo.link_capacity(dpid, dpid2, avgTrafPort/myTopo.switch[dpid].port_capacity[port])
+        utilization = avgTrafPort/myTopo.switch[dpid].port_capacity[1]
+        log.debug("Link utilization is %.4f",utilization)
+        myTopo.link_capacity(dpid, dpid2, utilization)
 
 
 
@@ -266,10 +268,11 @@ def _handle_flow_stats(event):
         flow_dict[i]["actions"] = []
         for j,act in enumerate(rule.actions):
             flow_dict[i-1]["actions"] = act.port
+        StatsHandler.saveStats(FLOW, event.dpid, flow_dict)
             #flow_dict[i-1]["actions"][j-1][""] =act[]
     # print ("FLOW_STATS")
     # print(flow_dict)
-    StatsHandler.saveStats(FLOW, event.dpid, flow_dict)
+
 
     #print(stat_flow)
     #return None #todo

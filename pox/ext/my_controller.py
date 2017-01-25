@@ -38,7 +38,8 @@ import my_topo_SDN as topo #new class
 
 log = core.getLogger()
 
-SDN_network = "10.0.0.0/24"
+SDN_network = "10.0.0.0"
+SDN_NETMASK = "255.255.255.0"
 
 PCK_ERROR_OPT = 1
 DELAY_OPT     = 2
@@ -67,22 +68,46 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
         #check only current status. ignore maximum status. it's more realistic
         if(port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_HD"] or
                 port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_FD"]):
-            topo.switch[event.connection.dpid].port_capacity = 10; #TODO constants
+            topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10; #TODO constants
             log.info("port %i is a 10Mbps",port.port_no)
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_HD"] or
             port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_FD"]):
-            topo.switch[event.connection.dpid].port_capacity = 100; #TODO constants
+            topo.switch[event.connection.dpid].port_capacity[port.port_no] = 100; #TODO constants
             log.info("port %i is a 100Mbps",port.port_no)
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_HD"] or
             port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_FD"]):
-            topo.switch[event.connection.dpid].port_capacity = 1000; #TODO constants
+            topo.switch[event.connection.dpid].port_capacity[port.port_no] = 1000; #TODO constants
             log.info("port %i is a 1Gbps",port.port_no)
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_10GB_FD"]):
-            topo.switch[event.connection.dpid].port_capacity = 10000; #TODO constants
+            topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10000; #TODO constants
             log.info("port %i is a 10Gbps",port.port_no)
 
     #verificare che sua uno switch openflow
     log.debug("Add switch: %s", dpid_to_str(event.connection.dpid))
+
+def _handle_port_status(event):
+        if not event.modified :
+            return
+        for port in event.desc:
+            if ((port.state & of.ofp_port_state_rev_map["OFPPS_LINK_DOWN"]) and (port.port_no<10000)):
+                 log.info("port %i  is down",port.port_no)
+            #check only current status. ignore maximum status. it's more realistic
+            if(port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_HD"] or
+                    port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_FD"]):
+                topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10; #TODO constants
+                log.info("port %i changed to 10Mbps",port.port_no)
+            elif(port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_HD"] or
+                port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_FD"]):
+                topo.switch[event.connection.dpid].port_capacity[port.port_no] = 100; #TODO constants
+                log.info("port %i changed to 100Mbps",port.port_no)
+            elif(port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_HD"] or
+                port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_FD"]):
+                topo.switch[event.connection.dpid].port_capacity[port.port_no] = 1000; #TODO constants
+                log.info("port %i changed to 1Gbps",port.port_no)
+            elif(port.curr & of.ofp_port_features_rev_map["OFPPF_10GB_FD"]):
+                topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10000; #TODO constants
+                log.info("port %i is a 10Gbps",port.port_no)
+
 
 def _handle_ConnectionDown(event):
     topo.rm_switch(event.connection.dpid)
@@ -116,14 +141,14 @@ def _handle_ip_packet(event):
     dst_mac = packet.dst	    #mac del destinatario del pacchetto
     ip_pck = packet.find('ipv4')
 
-    ip_src = ip_pck.srcip #ip sorgente
-    ip_dst = ip_pck.dstip #ip destinatario
+    ip_src = IPAddr(ip_pck.srcip) #ip sorgente
+    ip_dst = IPAddr(ip_pck.dstip) #ip destinatario
 
-    if (IP.IPv4Address(ip_src) == IP.IPv4Address('100.100.100.0') or IP.IPv4Address(ip_src) == IP.IPv4Address('100.100.100.1')):
+    if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
         """ pacchetti di controllo """
         #non esegue nulla in quanto se ne occupa network_performance
         pass
-    elif (IP.IPv4Address(ip_src) in IP.IPv4Network(SDN_network)):
+    elif (ip_src.in_network(SDN_network, netmask=SDN_NETMASK)):
         """ sorgente e' nella sotto rete SDN """
         #verifico se gia' presente nel grafo
         if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
@@ -132,7 +157,7 @@ def _handle_ip_packet(event):
             topo.add_host(event.connection.dpid, src_mac, event.port, ip_pck.srcip)
             log.debug("\n %s aggiunto nella rete", ip_src)
 
-        if (IP.IPv4Address(ip_dst) in IP.IPv4Network(SDN_network)):
+        if (ip_dst.inNetwork(SDN_network, netmask=SDN_NETMASK)):
             """ destinatario nella sotto rete SDN """
             if topo.is_logged(ip_dst):
                 #destinatario presente posso farli connettere
@@ -183,5 +208,6 @@ def launch():
     core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
     core.openflow.addListenerByName("ConnectionUp",_handle_ConnectionUp)
     core.openflow.addListenerByName("ConnectionDown",_handle_ConnectionDown)
+    core.openflow.addListenerByName("PortStatus",_handle_port_status)
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
