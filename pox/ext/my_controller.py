@@ -38,7 +38,7 @@ import my_topo_SDN as topo #new class
 
 log = core.getLogger()
 
-SDN_network = "10.0.0.0/24"
+SDN_network = "192.168.0.0/16"
 
 PCK_ERROR_OPT = 1
 DELAY_OPT     = 2
@@ -95,8 +95,13 @@ def _handle_ip_packet(event):
     dst_mac = packet.dst	    #mac del destinatario del pacchetto
     ip_pck = packet.find('ipv4')
 
+    if ip_pck is None:
+        log.debug("ip_pck no ipv4")
+
     ip_src = ip_pck.srcip #ip sorgente
     ip_dst = ip_pck.dstip #ip destinatario
+    #log.debug("IP_src %s, IP_dst %s", ip_pck.srcip, ip_pck.dstip)
+
 
     if (IP.IPv4Address(ip_src) == IP.IPv4Address('100.100.100.0') or IP.IPv4Address(ip_src) == IP.IPv4Address('100.100.100.1')):
         """ pacchetti di controllo """
@@ -105,11 +110,15 @@ def _handle_ip_packet(event):
     elif (IP.IPv4Address(ip_src) in IP.IPv4Network(SDN_network)):
         """ sorgente e' nella sotto rete SDN """
         #verifico se gia' presente nel grafo
+        #log.debug("sorgente nella rete SDN")
+        #log.debug("is_src %s, il_log: %s", ip_src, topo.is_logged(ip_src) )
         if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
             pass
         else:
-            topo.add_host(event.connection.dpid, src_mac, event.port, ip_pck.srcip)
+            topo.add_host(event.connection.dpid, src_mac, event.port, ip_src)
             log.debug("\n %s aggiunto nella rete", ip_src)
+
+        #log.debug("sorgente nella rete SDN 3")
 
         if (IP.IPv4Address(ip_dst) in IP.IPv4Network(SDN_network)):
             """ destinatario nella sotto rete SDN """
@@ -123,7 +132,7 @@ def _handle_ip_packet(event):
                     log.debug("Some errors occur in the graph path")
             else:
                 #destinatario interno non ancora loggato, potrei cercarlo ma per ora no
-                log.debug("Ip_dst interno ma non ancora loggato: %s", ip_dst)
+                log.debug(" da src interno Ip_dst interno ma non ancora loggato: %s", ip_dst)
 
         else:
             """ destinatario fuori dalla sottorete SDN """
@@ -133,10 +142,12 @@ def _handle_ip_packet(event):
         """ sorgente del pacchetto proveniente dall'esterno della sottorete SDN """
         if topo.is_logged(ip_dst):
             #destinatario presente posso farli connettere
+            log.debug("IP_src %s", ip_src)
+            topo.add_host(event.connection.dpid, src_mac, event.port, ip_pck.srcip)
             topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
         else:
             #destinatario interno non ancora loggato, potrei cercarlo ma per ora no
-            log.debug("Ip_dst interno ma non ancora loggato: %s", ip_dst)
+            log.debug("da src esterno Ip_dst interno ma non ancora loggato: %s", ip_dst)
 
 def _show_topo():
     """

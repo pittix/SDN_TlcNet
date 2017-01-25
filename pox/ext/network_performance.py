@@ -65,7 +65,9 @@ def get_delay(dpid1, dpid2):
     identity = IPAddr(ip_dst)
     msg = create_msg(ipsrc = "100.100.100.1", ipdst = ip_dst, port = out_port)
     core.openflow.sendToDPID(dpid1, msg)
-    lista[dpid2].add_delay(identity)
+    if lista.has_key(dpid2):
+        lista[dpid2].add_delay(identity)
+
 
 
 def _handle_PacketIn(event):
@@ -83,10 +85,16 @@ def _handle_PacketIn(event):
         elif ipaddress.IPv4Address(ip_packet.srcip) == ipaddress.IPv4Address('100.100.100.1'):
             #sicuramente delay msg
             dpid2 = topo.switch[event.dpid].port_dpid[event.port]
-            rtt1 = lista[event.dpid].av_rtt
-            rtt2 = lista[dpid2].av_rtt
-            delay = lista[event.dpid].update_delay(ip_dst, time) - rtt1/2 -rtt2/2
-            topo.link_delay(event.dpid, dpid2 , delay)
+            rtt1 = -1
+            rtt2 = -1
+            try:
+                rtt1 = lista[event.dpid].av_rtt
+                rtt2 = lista[dpid2].av_rtt
+            except:
+                pass
+            if ((rtt1 != -1) and (rtt2 != -1)):
+                delay = lista[event.dpid].update_delay(ip_dst, time) - rtt1/2 -rtt2/2
+                topo.link_delay(event.dpid, dpid2 , delay)
 
 
 
