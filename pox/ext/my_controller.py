@@ -143,6 +143,11 @@ def _handle_ip_packet(event):
 
     ip_src = IPAddr(ip_pck.srcip) #ip sorgente
     ip_dst = IPAddr(ip_pck.dstip) #ip destinatario
+    #add host to host list
+    h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
+    h.addConnection(ip_dst)
+    topo.hosts.append(h)
+
 
     if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
         """ pacchetti di controllo """
@@ -211,3 +216,4 @@ def launch():
     core.openflow.addListenerByName("PortStatus",_handle_port_status)
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
+    Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
