@@ -8,7 +8,7 @@ from pox.lib.addresses import IPAddr, EthAddr
 #import ipaddress as Ip
 import networkx as nx            #graph library
 import matplotlib.pyplot as plt  #for ploting graph
-
+import datetime #for connection expiration in host tuples
 import random #debug
 
 log = core.getLogger()
@@ -21,12 +21,13 @@ capacity_gf = nx.Graph()    #capacita' max link
 load_gf = nx.Graph()        #percentuale del caricamento del link in base alla sua capacita' max
 ip_to_switch = {} #dizionario in cui l'ip solo le chiavi e i valori gli elementi switch
 mac_to_ip = {} #per gli host
+hosts=[] # list of object of type Host
 
 __DEFAULT_RULES_PRIORITY = 50
 __DEFAULT_ARP_PATH = 150
 __DEFAULT_IP_PATH = 1000
 
-
+IP_TIMEOUT = 60 #seconds
 PCK_ERROR_OPT = 1
 DELAY_OPT     = 2
 DEFAULT_OPT   = 3
@@ -271,29 +272,77 @@ class my_Switch():
         self.port_mac = {}
         self.mac_port = {}
         self.port_capacity={} # maximum port capacity in Mbps
-        self.host_gaming={} # if port has a gaming host, value is True
-        self.heavy_traffic={} # if port has an host who is making a lot of traffic, here is true
+        # self.host_gaming={} # if port has a gaming host, value is True
+        # self.heavy_traffic={} # if port has an host who is making a lot of traffic, here is true
 
-    def add_host(self, mac, porta, ip):
+    #def add_host(self, mac, porta, ip):
+    def add_host(h, port):
         "add host on the switch's port"
-        if self.dpid_port.has_key(ip):
-            log.debug("IP still exist on the switch")
-        else:
-            self.dpid_port[ip] = porta
-            self.port_dpid[porta] = ip
-            self.port_mac[porta] = mac
-            self.mac_port[mac] = porta
+        if ( not isinstance(h,Host)):
+            raise("h not a member of class host in my_Switch.add_host")
 
+        # if self.dpid_port.has_key(ip):
+        #     log.debug("IP still exist on the switch")
+        # else:
+        #     self.dpid_port[ip] = porta
+        #     self.port_dpid[porta] = ip
+        #     self.port_mac[porta] = mac
+        #     self.mac_port[mac] = porta
+        self.port_dpid[port]=h
             msg = of.ofp_flow_mod()
             msg.priority = 100
             msg.match.dl_type = 0x806 #arp reques
-            msg.match.dl_dst = EthAddr(str(mac))
-            msg.actions.append(of.ofp_action_output(port = porta ))
+            msg.match.dl_dst = EthAddr(str(h.mac))
+            msg.actions.append(of.ofp_action_output(port = port ))
             core.openflow.sendToDPID(self.dpid, msg)
 
             msg = of.ofp_flow_mod()
             msg.priority = 1000
-            msg.match.nw_dst = IPAddr(str(ip))
+            msg.match.nw_dst = IPAddr(str(h.ip))
             msg.match.dl_type = 0x800 #ip
-            msg.actions.append(of.ofp_action_output(port = porta ))
+            msg.actions.append(of.ofp_action_output(port = port ))
             core.openflow.sendToDPID(self.dpid, msg)
+class Host():
+    def __init__(self, dpid,portN, ipAddr=None, macAddr=None ):
+        if(ipAddr is not None and !isinstance(ipAddr,IPAddr)):
+            raise("Invalid argument. ip address must be an IPAddr object")
+        self.isGaming=False
+        self.traffic = False
+        self.connectedTo = []
+        self.switch = ( dpid , portN) # tuple for the
+        self.ip=ipAddr
+        self.mac=macAddr
+        hosts.append(self) # add itself to the host list
+
+    def setGaming(self,g):
+        self.isGaming=g
+    def isGaming(self):
+        return self.isGaming
+    def setTraffic(t):
+        self.traffic=t
+    def getTraffic():
+        return self.traffic
+
+    def addConnection(ip):
+        #update timer if ip exist
+        if(ip in self.connectedTo):
+            for p,tup in self.connectedTo:
+                self.connectedTo[p][1] = datetime.datetime.now()
+        #add ip
+        self.connectedTo.append((ip,datetime.datetime.now()))
+
+    def isConnected(ip):
+        """if is connected return the time since when it was connected [datetime.datetime]
+        otherwise return False"""
+        if(ip in self.connectedTo):
+            return x[1] for x in self.connectedTo
+        else: return False
+
+    def cleanExpiredIp():
+        for p, conn in enumerate(self.connectedTo):
+            if((conn[1]+IP_TIMEOUT)>datetime.datetime.now()):
+                del connectedTo[p] # remove the tuple
+
+def ipCleaner():
+    for h in hosts:
+        h.cleanExpiredIp()

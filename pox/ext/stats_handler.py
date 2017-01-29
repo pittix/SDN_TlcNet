@@ -74,6 +74,7 @@ class StatsHandler:
     @classmethod
     def _getTableStat(cls,dpid,table):
         if not dpid in _stats[TABLE]: # check if I have some stats for this dpid
+            log.debug("no table stats for switch %i",dpid )
             return None;
         if table is None: # check if all stats are needed
             return _stats[TABLE][dpid] # list of dictionary
@@ -111,6 +112,7 @@ class StatsHandler:
     @classmethod
     def _getFlowStat(cls,dpid,flow):
         if not dpid in _stats[FLOW]:
+            log.debug("no flow stats for switch %i",dpid )
             return None;
         # if flow is None:
         return _stats[FLOW][dpid] # list of dictionary
@@ -153,16 +155,16 @@ def _setPktLoss(stat,dpid):
         except:
             pass;
 
-def _setLinkLoad(stat,dpid):
-    """
-    consider the load as how much te node queue is filled.
-    more it's filled, worse is the weight
-    """
-    if stat is None: return #no stats available
-
-    for portN,queue in enumerate(stats):
-         dpid2=myTopo.switch[dpid].port_dpid[portN+1]
-         mytopo.link_load(dpid, dpid2, queue["txE"]) # if the queue is full, packets will be dropped
+# def _setLinkLoad(stat,dpid):
+#     """
+#     consider the load as how much te node queue is filled.
+#     more it's filled, worse is the weight
+#     """
+#     if stat is None: return #no stats available
+#
+#     for portN,queue in enumerate(stats):
+#          dpid2=myTopo.switch[dpid].port_dpid[portN+1]
+#          mytopo.link_load(dpid, dpid2, queue["txE"]) # if the queue is full, packets will be dropped
 
 
 def  _setAvgPktSize(stat,dpid):
@@ -206,7 +208,7 @@ def _setTraffic(flow_stat,dpid):
 def launch():
     core.openflow.addListenerByName("FlowStatsReceived", _handle_flow_stats)
     core.openflow.addListenerByName("SwitchDescReceived", _handle_desc_stats)
-    core.openflow.addListenerByName("QueueStatsReceived", _handle_queue_stats)
+    #core.openflow.addListenerByName("QueueStatsReceived", _handle_queue_stats)
     core.openflow.addListenerByName("PortStatsReceived", _handle_port_stats)
     core.openflow.addListenerByName("TableStatsReceived", _handle_table_stats)
     # core.openflow.addListenerByName("AggregateStatsReceived", _handle_aggregate_stats)
@@ -245,8 +247,8 @@ def req_stats(dpid, type=DESC_STATS, port=1, tab=1):
             con.send(of.ofp_stats_request(body=of.ofp_table_stats_request()))#table=tab)))
         if ((type & PORT_STATS) != 0) :
             con.send(of.ofp_stats_request(body=of.ofp_port_stats_request()))#port = port)))
-        if ((type & QUEUE_STATS) != 0) :
-            con.send(of.ofp_stats_request(body=of.ofp_queue_stats_request()))#port=port)))
+        #if ((type & QUEUE_STATS) != 0) :
+            #con.send(of.ofp_stats_request(body=of.ofp_queue_stats_request()))#port=port)))
     except:
         log.warning("Cannot send stats request. maybe the switch just disconnected")
 def _handle_flow_stats(event):
