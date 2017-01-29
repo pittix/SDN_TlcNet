@@ -45,6 +45,8 @@ PCK_ERROR_OPT = 1
 DELAY_OPT     = 2
 DEFAULT_OPT   = 3
 
+EXTERNAL = (None,None)
+
 def _handle_LinkEvent(event):
     """
     handle event ("LinkEvent") from openflow.discovery
@@ -81,6 +83,21 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_10GB_FD"]):
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10000; #TODO constants
             log.info("port %i is a 10Gbps",port.port_no)
+
+        #Find the port where is connected the standard router
+        if port.hw_addr == topo.hosts[0].mac:
+            log.info("found port to the internet")
+            EXTERNAL = (event.dpid,port.port_no)
+            topo.hosts[0].switch=EXTERNAL
+            topo.hosts[0].mac=EthAddr("FF:FF:FF:FF:FF:FF") # broadcast mac
+            sw  = event.dpid in topo.switch #switch already added, so it exist
+            sw.port_dpid[port.port_no] = IPAddr("0.0.0.0",0)
+            sw.dpid_port[IPAddr("0.0.0.0",0)]=port.port_no
+            #probably useless
+            sw.port_mac[port.port_no]=port.hw_addr
+            sw.mac_port[port.hw_addr]=port.port_no
+
+
 
     #verificare che sua uno switch openflow
     log.debug("Add switch: %s", dpid_to_str(event.connection.dpid))
@@ -238,6 +255,18 @@ def launch(__INSTANCE__=None, **kw):
         pox.openflow.spanning_tree
     and make listeners functions
     """
+    #copied from log.level and adapted to accept mac addr
+    #the first host in topo.hosts is theinternet way
+    for k,v in kw.iteritems():
+        if k.find("mac")>-1: #index -1 is the NotFound
+            # print("parsing mac addr")
+            log.debug("parsing mac address")
+            if len(v) == 17 : # "00:11:22:33:44:55:66" is the mac address form
+                h=topo.Host(None,None,ipAddr=IPAddr("0.0.0.0",0),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
+                topo.hosts.append(h) # add the host as the first one
+                # print("added ext host" )
+                log.info("added the external host and ready for finding the switch/port to which forward all external packets")
+
     pox.topology.launch()
     pox.openflow.discovery.launch()
     pox.openflow.topology.launch()
@@ -250,13 +279,3 @@ def launch(__INSTANCE__=None, **kw):
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
     Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
-    #copied from log.level and adapted to accept mac addr
-    for k,v in kw.iteritems():
-        if k.find("mac")>-1: #index -1 is the NotFound
-            # print("parsing mac addr")
-            log.debug("parsing mac address")
-            if len(v) == 17 : # "00:11:22:33:44:55:66" is the mac address form
-                h=topo.Host(None,None,ipAddr=IPAddr("0.0.0.0",0),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
-                topo.hosts.append(h) # add the host as the first one
-                # print("added ext host" )
-                log.info("added the external host and ready for finding the switch/port to which forward all external packets")
