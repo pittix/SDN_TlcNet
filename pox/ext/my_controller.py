@@ -252,8 +252,11 @@ def launch(__INSTANCE__=None, **kw):
     Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
     #copied from log.level and adapted to accept mac addr
     for k,v in kw.iteritems():
-        print("K= %s    V=%s" %(k,v))
-        if k == "--mac":
+        if k.find("mac")>-1: #index -1 is the NotFound
+            # print("parsing mac addr")
+            log.debug("parsing mac address")
             if len(v) == 17 : # "00:11:22:33:44:55:66" is the mac address form
-                h=topo.Host(None,None,ipAddr=0.0.0.0,macAddr=k) # same mac as the port. the ip is a special one. There is no dpid yet
+                h=topo.Host(None,None,ipAddr=IPAddr("0.0.0.0",0),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
                 topo.hosts.append(h) # add the host as the first one
+                # print("added ext host" )
+                log.info("added the external host and ready for finding the switch/port to which forward all external packets")

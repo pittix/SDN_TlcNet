@@ -289,22 +289,22 @@ class my_Switch():
         #     self.port_mac[porta] = mac
         #     self.mac_port[mac] = porta
         self.port_dpid[port]=h
-            msg = of.ofp_flow_mod()
-            msg.priority = 100
-            msg.match.dl_type = 0x806 #arp reques
-            msg.match.dl_dst = EthAddr(str(h.mac))
-            msg.actions.append(of.ofp_action_output(port = port ))
-            core.openflow.sendToDPID(self.dpid, msg)
+        msg = of.ofp_flow_mod()
+        msg.priority = 100
+        msg.match.dl_type = 0x806 #arp reques
+        msg.match.dl_dst = EthAddr(str(h.mac))
+        msg.actions.append(of.ofp_action_output(port = port ))
+        core.openflow.sendToDPID(self.dpid, msg)
+        msg = of.ofp_flow_mod()
+        msg.priority = 1000
+        msg.match.nw_dst = IPAddr(str(h.ip))
+        msg.match.dl_type = 0x800 #ip
+        msg.actions.append(of.ofp_action_output(port = port ))
+        core.openflow.sendToDPID(self.dpid, msg)
 
-            msg = of.ofp_flow_mod()
-            msg.priority = 1000
-            msg.match.nw_dst = IPAddr(str(h.ip))
-            msg.match.dl_type = 0x800 #ip
-            msg.actions.append(of.ofp_action_output(port = port ))
-            core.openflow.sendToDPID(self.dpid, msg)
 class Host():
     def __init__(self, dpid,portN, ipAddr=None, macAddr=None ):
-        if(ipAddr is not None and !isinstance(ipAddr,IPAddr)):
+        if(ipAddr is not None and not isinstance(ipAddr,IPAddr)):
             raise("Invalid argument. ip address must be an IPAddr object")
         self.isGaming=False
         self.traffic = False
@@ -312,7 +312,7 @@ class Host():
         self.switch = ( dpid , portN) # tuple for the
         self.ip=ipAddr
         self.mac=macAddr
-        self.lastChange = time.time() #current time in seconds
+        self.lastChange = datetime.datetime.now() #current time in seconds
         hosts.append(self) # add itself to the host list
 
     def setGaming(self,g):
@@ -333,13 +333,13 @@ class Host():
         self.connectedTo.append([])
         self.connectedTo[-1].append((ip,datetime.datetime.now()))
         if path:
-            self.connectedTo[-1].append(path) // add the path to reach the node
+            self.connectedTo[-1].append(path) # add the path to reach the node
 
     def isConnected(ip):
         """if is connected return the time since when it was connected [datetime.datetime]
         otherwise return False"""
         if(ip in self.connectedTo):
-            return x[1] for x in self.connectedTo
+            return [x[1] for x in self.connectedTo]
         else: return False
 
     def cleanExpiredIp():
