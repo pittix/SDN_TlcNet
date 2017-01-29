@@ -278,6 +278,9 @@ class my_Switch():
     #def add_host(self, mac, porta, ip):
     def add_host(h, port):
         "add host on the switch's port"
+        if ( not isinstance(h,Host)):
+            raise("h not a member of class host in my_Switch.add_host")
+
         # if self.dpid_port.has_key(ip):
         #     log.debug("IP still exist on the switch")
         # else:
