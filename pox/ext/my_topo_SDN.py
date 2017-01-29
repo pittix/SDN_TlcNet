@@ -312,6 +312,7 @@ class Host():
         self.switch = ( dpid , portN) # tuple for the
         self.ip=ipAddr
         self.mac=macAddr
+        self.lastChange = time.time() #current time in seconds
         hosts.append(self) # add itself to the host list
 
     def setGaming(self,g):
@@ -323,13 +324,16 @@ class Host():
     def getTraffic():
         return self.traffic
 
-    def addConnection(ip):
+    def addConnection(ip,path=None):
         #update timer if ip exist
         if(ip in self.connectedTo):
             for p,tup in self.connectedTo:
                 self.connectedTo[p][1] = datetime.datetime.now()
         #add ip
-        self.connectedTo.append((ip,datetime.datetime.now()))
+        self.connectedTo.append([])
+        self.connectedTo[-1].append((ip,datetime.datetime.now()))
+        if path:
+            self.connectedTo[-1].append(path) // add the path to reach the node
 
     def isConnected(ip):
         """if is connected return the time since when it was connected [datetime.datetime]

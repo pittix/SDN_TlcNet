@@ -146,10 +146,37 @@ def _handle_ip_packet(event):
 
     ip_src = IPAddr(ip_pck.srcip) #ip sorgente
     ip_dst = IPAddr(ip_pck.dstip) #ip destinatario
-    #add host to host list
-    h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
-    h.addConnection(ip_dst)
-    topo.hosts.append(h)
+    alreadySrc = False
+    alreadyDst=False
+    for hst in topo.hosts:
+        if ip_src == hst.ip:
+            alreadySrc=True
+            log.debug("src host already found.")
+            for dst in hst.connectedTo:
+                if ip_dst in dst[0][0]:
+                    log.debug("connection found before")
+                    alreadyDst =True
+
+    if not alreadySrc and not (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
+        #add host to host list
+        h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
+        h.addConnection(ip_dst)
+        topo.hosts.append(h)
+    elif not alreadyDst and not (ip_dst.inNetwork(SDN_network, netmask=SDN_NETMASK)):
+        for h in topo.hosts:
+            if h.ip == ip_src:
+                if h.isGaming:
+                    log.debug("Adding link with the lowest delay path")
+                    #TODO add with delay graph
+                elif h.traffic:
+                    log.debug("Adding link with the worst graph")
+                else:
+                    topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
+                    h.lastChange = time.time() #update last time the node changedthe graph
+
+
+
+
     if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
         """ pacchetti di controllo """
         #non esegue nulla in quanto se ne occupa network_performance
@@ -202,7 +229,7 @@ def _show_topo():
     job_for_another_core = multiprocessing.Process(target=topo.save_graph,args=()) #chiama la funzione save_graph in un processo separato
     job_for_another_core.start()
 
-def launch():
+def launch(__INSTANCE__=None, **kw):
     """
     start:
         pox.topology.launch()
@@ -223,3 +250,10 @@ def launch():
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
     Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
+    #copied from log.level and adapted to accept mac addr
+    for k,v in kw.iteritems():
+        print("K= %s    V=%s" %(k,v))
+        if k == "--mac":
+            if len(v) == 17 : # "00:11:22:33:44:55:66" is the mac address form
+                h=topo.Host(None,None,ipAddr=0.0.0.0,macAddr=k) # same mac as the port. the ip is a special one. There is no dpid yet
+                topo.hosts.append(h) # add the host as the first one
