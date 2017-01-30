@@ -1,0 +1,132 @@
+\documentclass[conference,10pt]{IEEEtran}
+%\documentclass[conference,draft,onecolumn]{IEEEtran}
+% useful packages, copy and paste from diff sources
+
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{cite,url,color} % Citation numbers being automatically sorted and properly "compressed/ranged".
+\usepackage{graphics,amsfonts}
+\usepackage{epstopdf}
+\usepackage[pdftex]{graphicx}
+\usepackage[cmex10]{amsmath}
+% Also, note that the amsmath package sets \interdisplaylinepenalty to 10000
+% thus preventing page breaks from occurring within multiline equations. Use:
+\interdisplaylinepenalty=2500
+% after loading amsmath to restore such page breaks as IEEEtran.cls normally does.
+\usepackage[utf8]{inputenc}
+% Useful for displaying quotations
+%\usepackage{csquotes}
+% Compact lists
+%\let\labelindent\relax
+\usepackage{enumitem}
+
+%tikz figures
+\usepackage{tikz}
+\usetikzlibrary{automata,positioning,chains,shapes,arrows}
+\usepackage{pgfplots}
+\usetikzlibrary{plotmarks}
+\newlength\fheight
+\newlength\fwidth
+\pgfplotsset{compat=newest}
+\pgfplotsset{plot coordinates/math parser=false}
+
+\usepackage{array}
+% http://www.ctan.org/tex-archive/macros/latex/required/tools/
+%\usepackage{mdwmath}
+%\usepackage{mdwtab}
+%mdwtab.sty	-- A complete ground-up rewrite of LaTeX's `tabular' and  `array' environments.  Has lots of advantages over
+%		   the standard version, and over the version in `array.sty'.
+% *** SUBFIGURE PACKAGES ***
+%\usepackage[tight,footnotesize]{subfigure}
+\usepackage{subfig}
+
+\usepackage[top=1.5cm, bottom=2cm, right=1.6cm,left=1.6cm]{geometry}
+\usepackage{indentfirst}
+
+\usepackage{times}
+% make sections titles smaller to save space
+%\usepackage{sectsty}
+%\sectionfont{\large}
+% enable the use of 'compactitem', a smaller 'itemize'
+%\usepackage{paralist}
+
+% MP
+% to split equations using dmath env
+\usepackage{breqn}
+% nice rules in tables
+\usepackage{booktabs}
+
+%\setlength\parindent{0pt}
+\linespread{1}
+
+% MC
+\newcommand{\MC}[1]{\textit{\color{red}MC says: #1}}
+\newcommand{\AZ}[1]{\textit{\color{blue}AZ says: #1}}
+\newcommand{\MP}[1]{\textit{\color{green}MP says: #1}}
+
+\usepackage{placeins}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{LaTeX Template for a Scientific Paper}
+
+\author{\IEEEauthorblockN{Andrea Pittaro, Matteo Maso }
+\IEEEauthorblockA{Department of Information Engineering, University of Padova -- Via Gradenigo, 6/b, 35131 Padova, Italy\\Email: {\tt\{pittaroa,masomatt\}@dei.unipd.it}
+}}
+
+\maketitle
+
+\begin{abstract}
+In this paper we present an application of the Software Defined Networks, focusing on the integration of the actual network with the SDN one.
+We will show how it's possible to implement a QoS mechanism to keep the network up and to grant the users the possibility of using it outside
+a laboratory.
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}\label{sec:intro}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The \textit{\textbf{SDN}, Software Defined Network} is a new approach to create a network of computer and networks, which is based on the
+most famous OpenFlow protocol. The key concepts of this type of networks are the hierarchy, the flow control and the statistics.
+The hierarchy allows a network administrator to set up a controller which will choose how to make the network evolve setting up
+how the routing will switch the traffic and doing so, how the single switch will behave.
+The flow control is done by the controller that, running the algorithm the network administrator created, choose the path for a
+type of traffic that occurs between a source and a destinaion host.
+The most important and interesting thing about those type of networks is the statistics: every switching unit collects data from its
+interfaces (e.g. the number of packets going in or out through a specific port or interface). This allow the controller to instantly
+how the network is evolving and, if necessary, switch a traffic from congestioned links to other that, in that moment, are almost fully loaded.
+Exploiting the statistic capabilities is the key to manage wisely a network and, since there aren't many papers about these potentialities,
+we decided to focus on that. In this paper we will show how we handled the contemporary traffic between multiple host, both inside SDN network
+nd between the SDN one and the external internet. Starting from traffic analysis and going through the SDN state of the art, we implemented some function
+to exploit better the SDN POX controller and we reach the end of this paper showing how we found three different types of traffic and
+for each one, we provided different metrics and different path to optimize the load. We realized the controller using POX, a python-based controller
+and we tested it with the switches that were provided us in the Communication Networks Lab at DEI.
+\begin{itemize}
+	\item What are we talking about: description of the addressed problem. - done 
+\item Motivation: why the problem is important. done
+\item Novelty: how you contribute to advance the state of the art. done
+\item Results: summary of the main findings  done
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related Work}\label{sec:sota}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The Related Work section contains an analysis of the most relevant related literature (remarking the shortcomings that are addressed in your work)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{System Model}\label{sec:symo}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The System model is a description of your operating assumptions with related motivation and justification
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}\label{sec:res}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The Results section contains a selection of the most relevant results with the explanation of their meaning. Please, not that you do NOT have to describe the shape of the curves that can be seen in the figures, but the reasons WHY such curves have that shape!
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusions}\label{sec:conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
+
+\end{document}
