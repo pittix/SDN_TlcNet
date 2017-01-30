@@ -121,8 +121,8 @@ The last one isn't needed, as the controller can set a switch to drop all the pa
 \subsection{Openflow 1.0 messages}
 Openflow defines a number of messages between a controller and a switch. Now there will be presented some messages we exploited:
 \begin{itemize}
-	\item[Hello] this message is exchanged between a switch who is looking for a controller after the
-	switch was turned on. After receiving it, the controller will send the FeatureReq packet to that switch.
+	\item[Hello] This message is sent both from the controller and the switch who is looking for a controller after it
+	is turned on. If the switch sent the message, the controller, after receiving it, will send the FeatureReq packet to that switch.
 	\item[FeatureReq] this is the message that the controller sends to a switch to know its abilities. The switch
 	respond with a FeatureRes and when this last message reaches the pox controller, the ConnectionUp event is raised.
 	With the featureRes the controller will know how many ports a switch has and their properties (e.g. if they are connected, link speed,...), the flow table capabilities and the supported statistics.
