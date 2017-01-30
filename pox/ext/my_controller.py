@@ -246,6 +246,7 @@ def _show_topo():
     job_for_another_core = multiprocessing.Process(target=topo.save_graph,args=()) #chiama la funzione save_graph in un processo separato
     job_for_another_core.start()
 
+
 def launch(__INSTANCE__=None, **kw):
     """
     start:
@@ -279,3 +280,4 @@ def launch(__INSTANCE__=None, **kw):
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
     Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
+    Timer(5, _checkChanges, recurring = True) # change the graph if something happened
