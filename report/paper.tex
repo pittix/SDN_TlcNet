@@ -103,7 +103,7 @@ to exploit better the SDN POX controller and we reach the end of this paper show
 for each one, we provided different metrics and different path to optimize the load. We realized the controller using POX, a python-based controller
 and we tested it with the switches that were provided us in the Communication Networks Lab at DEI.
 \begin{itemize}
-	\item What are we talking about: description of the addressed problem. - done 
+	\item What are we talking about: description of the addressed problem. - done
 \item Motivation: why the problem is important. done
 \item Novelty: how you contribute to advance the state of the art. done
 \item Results: summary of the main findings  done
@@ -112,12 +112,35 @@ and we tested it with the switches that were provided us in the Communication Ne
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Related Work}\label{sec:sota}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The Related Work section contains an analysis of the most relevant related literature (remarking the shortcomings that are addressed in your work)
+A good introduction about the SDN can be the  "Simulation in an SDN network scenario using the
+POX Controller" where has been presented the SDN environment and the mininet simulation
+tool that creates a topology where to simulate the switches, the traffic between hosts and
+allow the controller to communicate with the switches. The work presented in
+"Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad [put cit]
+has been implemented to improve the controller speed and efficiency as it make it more reactive.
+The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found
+in the paper called "Getting traffic statistics from network devices in an
+SDN environment using OpenFlow" by D.J. Hamad & others. [ put note here]
+For traffic analysis we haven't found any paper describing the characteristics of
+some types of flows, so we used our PCs to sniff the traffic. Traffic analysis will be discussed in section \ref{sec:symo}.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{System Model}\label{sec:symo}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The System model is a description of your operating assumptions with related motivation and justification
+
+
+\subsection{Traffic analysis}
+We used laptop connected via
+GigabitEthernet interface and Ethernet cable cat.5a to receive the traffic from the destination host.
+Our laptop has been connected via Wi-Fi to our access point via protocol 802.11n.
+No other traffic sources were active during the testing, so the router was handling only
+the traffic from laptop when sniffing traffic. The connection used was an ADSL2+ via copper.
+We did 3 type of traffic analysis: Gaming traffic, Skype® and torrent traffic. We analyzed
+#Mb for the gaming traffic, #Mb for the VoIP traffic and 3GB for the torrent traffic.
+The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP)
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}\label{sec:res}
