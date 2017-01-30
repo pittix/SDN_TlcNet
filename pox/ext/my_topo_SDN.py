@@ -308,7 +308,7 @@ class Host():
             raise("Invalid argument. ip address must be an IPAddr object")
         self.isGaming=False
         self.traffic = False
-        self.connectedTo = []
+        self.connectedTo = {}
         self.switch = ( dpid , portN) # tuple for the
         self.ip=ipAddr
         self.mac=macAddr
@@ -324,16 +324,18 @@ class Host():
     def getTraffic():
         return self.traffic
 
-    def addConnection(ip,path=None):
+    def addConnection(host,path=None):
         #update timer if ip exist
         if(ip in self.connectedTo):
-            for p,tup in self.connectedTo:
-                self.connectedTo[p][1] = datetime.datetime.now()
+            for host,tup in self.connectedTo:
+                self.connectedTo[host][1] = datetime.datetime.now()
         #add ip
-        self.connectedTo.append([])
-        self.connectedTo[-1].append((ip,datetime.datetime.now()))
+        self.connectedTo.[host] = []
+        self.connectedTo[host].append(datetime.datetime.now())
         if path:
-            self.connectedTo[-1].append(path) # add the path to reach the node
+            for i,p in enumerate(path):
+                if connectedTo.path
+            self.connectedTo[host].append(path) # add the path to reach the node
 
     def isConnected(ip):
         """if is connected return the time since when it was connected [datetime.datetime]

@@ -9,7 +9,7 @@ log = core.getLogger()
 
 # from enum import Enum
 # from graphUpdater import GraphUpdater
-UPD_GRAPH = 1 # every 10 seconds update the graph weight
+UPD_GRAPH = 10 # every 10 seconds update the graph weight
 GAMING_THRES = 10 #bytes per packet
 
 dpid = list()
