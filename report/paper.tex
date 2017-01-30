@@ -70,7 +70,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{LaTeX Template for a Scientific Paper}
+\title{Quality of Service with Software Defined Network.}
 
 \author{\IEEEauthorblockN{Andrea Pittaro, Matteo Maso }
 \IEEEauthorblockA{Department of Information Engineering, University of Padova -- Via Gradenigo, 6/b, 35131 Padova, Italy\\Email: {\tt\{pittaroa,masomatt\}@dei.unipd.it}
@@ -102,6 +102,42 @@ nd between the SDN one and the external internet. Starting from traffic analysis
 to exploit better the SDN POX controller and we reach the end of this paper showing how we found three different types of traffic and
 for each one, we provided different metrics and different path to optimize the load. We realized the controller using POX, a python-based controller
 and we tested it with the switches that were provided us in the Communication Networks Lab at DEI.
+\subsection{Known Limitations}
+SDN networks are known to be underperforming with low traffic, which means that if nodes tries to connect with each other
+to exchange little traffic, the network will have a higher delay and will perform worst than a
+traditional network. We tried to reduce this underperformance with the usage of the wildcards:
+Every rule needs at least the source ip or the destination ip. If one of them is in a network
+(e.g. the internet traffic is in the network 0.0.0.0/0 excluded 192.168.10.0/24 ),
+we can redirect all the traffic from an internal host to the internet with a predefined
+path. This means that only one PacketIn will be sent to the controller if a host is surfing the network.
+
+Another limitation is the no default routing from a source to a destination: when an host
+is plugged to a network of SDN switches, it won't know the destinatio. The only way it can
+discover the host is by flooding the network with that packet, but this makes each switch raise a PacketIn message to the controller
+slowing down the startup of the connection. This thing doesn't happen with traditional routing, because each router knows
+the network disposition, but doesn't know each host how much traffic is doing. For that the administrator need to put a firewall.
+The last one isn't needed, as the controller can set a switch to drop all the packets from/to a destination.
+
+\subsection{Openflow 1.0 messages}
+Openflow defines a number of messages between a controller and a switch. Now there will be presented some messages we exploited:
+\begin{itemize}
+	\item[Hello] this message is exchanged between a switch who is looking for a controller after the
+	switch was turned on. After receiving it, the controller will send the FeatureReq packet to that switch.
+	\item[FeatureReq] this is the message that the controller sends to a switch to know its abilities. The switch
+	respond with a FeatureRes and when this last message reaches the pox controller, the ConnectionUp event is raised.
+	With the featureRes the controller will know how many ports a switch has and their properties (e.g. if they are connected, link speed,...), the flow table capabilities and the supported statistics.
+	\item[PortStatus] this message is sent from a switch to the controller, to notify that some ports has changed their status.
+		It's useful to check if a port has someone connected
+	\item[StatsReq] The controller will send this message to request the statistics. The payload of the message contains the type of statistic the controller want to know.
+		The switch then will answer with the Stats reply, if it supports that type of stat. It will send a Bad_Request message if not.
+		\item[PacketIn] This message is sent from the switch to the controller whenever a packet arrives and it doesn't match
+		any rule. The controller can decide to ignore that type of message, insert this message in a PacketOut message, or set
+		a flow rule for packets like this using a FlowMod.
+		\item[PacketOut] This message is sent from the controller to forward a packet, which is the payload of the PacketOut message, to some
+		port(s).
+		\item[FlowMod] This message set, delete or modify a rule inside a switch. Is the message that allows routing.
+\end{itemize}
+
 \begin{itemize}
 	\item What are we talking about: description of the addressed problem. - done
 \item Motivation: why the problem is important. done
@@ -131,6 +167,15 @@ some types of flows, so we used our PCs to sniff the traffic. Traffic analysis w
 The System model is a description of your operating assumptions with related motivation and justification
 
 
+We developed a controller that can handle a mesh network, which has loops, that avoid
+the traffic flooding. The controller stores the switch and the connection between them;
+knows which hosts are connected to each switch port, with the hypothesys that only one
+host is connected at each port, unless the port is the one connected to the internet.
+With the use of the statistics, the controller get the status of the network and, if necessary,
+tries to adjust the traffic and put in the link with the higher path loss the torrent traffic,
+make the connection between two gaming host the one with less delay and tries to redistribute all the traffic in a way
+such that all the nodes have an average throughput as lowest as possible.
+
 \subsection{Traffic analysis}
 We used laptop connected via
 GigabitEthernet interface and Ethernet cable cat.5a to receive the traffic from the destination host.
@@ -140,6 +185,20 @@ the traffic from laptop when sniffing traffic. The connection used was an ADSL2+
 We did 3 type of traffic analysis: Gaming traffic, Skype® and torrent traffic. We analyzed
 #Mb for the gaming traffic, #Mb for the VoIP traffic and 3GB for the torrent traffic.
 The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP)
+
+The traffic analysis of the torrent protocol shows that the average packet size is the MTU
+(i.e. 1500bytes) and the protocol tryies to exploit all the channel capabilities. The traffic
+is made via UDP packets with the port range in the ephimeral ports (2000_- 65535).
+Moreover, the node is linked to a lot of IPs with multiple connection: this means that
+if someone wants to find a p2p traffic, it can look to the statistics and see if the traffic is loading all the channel,
+to how many IPs, an host is connected to and if it uses UDP.
+For the VoIP we saw that the protocol uses UDP and the traffic, after a transition time, goes only between two hosts.
+The average packet size is the MTU and the protocol tryies to exploit all the channel for a better QoE.
+On another test, we tried the VoIP while a download was ongoing, and we saw that the quality
+decreased to allow communication. The traffic is between the UDP port 80 ##TODO## TOCHECK ##
+
+The last traffic analysis we made was with a DOTA[explain what it is] web match.
+We saw that for that type of gaming session, the packet size is about # bytes and involves both TCP and UDP ports.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
