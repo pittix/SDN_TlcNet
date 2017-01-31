@@ -189,9 +189,109 @@ def get_gf(option):
     elif option == DEFAULT_OPT:
         return grafo
 
-def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
+def get_path(ip_int, ip_ext, option):
+    return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_ext, weight='weight')
 
-    path = nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_ext, weight='weight')
+def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
+    newPath=get_path(ip_int,hosts[0].ip,option):
+    h = [host.ip == ip_int for host in hosts ]
+    oldPath;
+    if option == PCK_ERROR_OPT:
+        oldPath = h.isConnected(ip_ext)
+        if oldPath is False:
+        #add path as it's the first time:
+            for i in range (1, len(newPath) - 2):
+                #install fluxes from ip_src to ip_dst
+                msg = of.ofp_flow_mod()
+                msg.priority = __DEFAULT_IP_PATH
+                msg.match.nw_dst = IPAddr(str(ip_dst))
+                msg.match.nw_proto = 17 # UDP
+                msg.match.dl_type = 0x800 #ip
+                pt_next_hop = switch[sw_list[i]].dpid_port[sw_list[i+1]]
+                msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
+                core.openflow.sendToDPID(sw_list[i], msg) #switch i-esimo
+            #the reverse
+            for i in range (2, len(newPath) - 1):
+                #install fluxes from ip_dst to ip_src
+                msg = of.ofp_flow_mod()
+                msg.priority = __DEFAULT_IP_PATH
+                msg.match.nw_dst = IPAddr(str(ip_src))
+                msg.match.dl_type = 0x800 #ip
+                msg.match.nw_proto = 17 #UDP
+                pt_pre_hop = switch[sw_list[i]].dpid_port[sw_list[i-1]]
+                msg.actions.append(of.ofp_action_output(port = pt_pre_hop ))
+                core.openflow.sendToDPID(sw_list[i], msg) #switch i-esimo
+            h.addConnection(hosts[0],path,UDP)
+        else:
+            for i in range(2,max(len(oldPath,newPath))-2):
+                if oldPath[i-1] == newPath[i-1]: #same switch
+                    if oldPath[i] == newPath[i]: # also the same next hop
+                        if oldPath[i+1] == newPath[i+1]:
+                            continue
+                        else: # the i+1 switch is different
+
+                            msg = of.ofp_flow_mod()
+                            msg.command = of.OFPFC_MODIFY
+                            msg.match.nw_dst = IPAddr(str(ip_dst))
+                            msg.match.nw_proto = 17 # UDP
+                            msg.priority = __DEFAULT_IP_PATH
+                            msg.match.dl_type = 0x800 #ip
+                            pt_next_hop = switch[newPath[i-1]].dpid_port[newPath[i]]
+                            msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
+                            core.openflow.sendToDPID(newPath[i], msg) #switch i-th
+                            #delete previous rules for the other switches
+                            for j in range(i,len(oldPath)-1):
+
+                                msg = of.ofp_flow_mod()
+                                msg.command = of.OFPFC_DELETE
+                                msg.priority = __DEFAULT_IP_PATH
+                                msg.match.nw_dst = IPAddr(str(ip_dst))
+                                msg.match.nw_proto = 17 # UDP
+                                msg.match.dl_type = 0x800 #ip
+                                core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
+                                #delete also the reverse path
+                                msg = of.ofp_flow_mod()
+                                msg.command = of.OFPFC_DELETE
+                                msg.priority = __DEFAULT_IP_PATH
+                                msg.match.nw_dst = IPAddr(str(ip_src))
+                                msg.match.nw_proto = 17 # UDP
+                                msg.match.dl_type = 0x800 #ip
+                                core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
+                            #install new rules
+                            for j in range (i,len(newPath)-2):
+                                msg=of.ofp_flow_mod()
+
+                                msg.priority = __DEFAULT_IP_PATH
+                                msg.match.nw_dst = IPAddr(str(ip_dst))
+                                msg.match.dl_type = 0x800 #ip
+                                pt_next_hope = switch[newPath[i]].dpid_port[newPath[i+1]]
+                                msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
+                                core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
+                            h.addConnection(host[0],newPath,UDP)
+                            return
+                    else:
+                        msg = of.ofp_flow_mod()
+                        msg.command = of.OFPFC_MODIFY
+                        msg.match.nw_dst = IPAddr(str(ip_dst))
+                        msg.match.nw_proto = 17 # UDP
+                        msg.priority = __DEFAULT_IP_PATH
+                        msg.match.dl_type = 0x800 #ip
+                        pt_next_hop = switch[newPath[i-1]].dpid_port[newPath[i]]
+                        msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
+                        core.openflow.sendToDPID(newPath[i], msg) #switch i-th
+                        #reverse
+                        msg = of.ofp_flow_mod()
+                        msg.command = of.OFPFC_MODIFY
+                        msg.priority = __DEFAULT_IP_PATH
+                        msg.match.nw_dst = IPAddr(str(ip_src))
+                        msg.match.nw_proto = 17 # UDP
+                        msg.match.dl_type = 0x800 #ip
+                        pt_pre_hop = switch[newPath[i]].dpid_port[newPath[i+1]]
+                        msg.actions.append(of.ofp_action_output(port = pt_pre_hop ))
+                        core.openflow.sendToDPID(newPath[i], msg) #switch i-th
+
+
+
     #devo fare in modo di riconoscere uno switch come gateway
     #capire nella realta' come arrivano i dpid
 
