@@ -40,7 +40,7 @@ log = core.getLogger()
 
 # SDN_network = "10.0.0.0/24"
 # SDN_NETMASK = "255.255.255.0"
-SDN_network = "192.168.0.0/16"
+SDN_network = ""#"192.168.0.0/16"
 PCK_ERROR_OPT = 1
 DELAY_OPT     = 2
 DEFAULT_OPT   = 3
@@ -96,7 +96,12 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             #probably useless
             sw.port_mac[port.port_no]=port.hw_addr
             sw.mac_port[port.hw_addr]=port.port_no
+            #add the link to the external
+            topo.add_link(event.dpid,port.port_no,topo.hosts[0].ip,port.port_no,isHost=True)
 
+        #default rules
+        if SDN_network != "": # I set the default network
+            topo.add_default_rules(event.connection.dpid, SDN_network)
 
 
     #verificare che sua uno switch openflow
@@ -169,27 +174,33 @@ def _handle_ip_packet(event):
         if ip_src == hst.ip:
             alreadySrc=True
             log.debug("src host already found.")
-            for dst in hst.connectedTo:
-                if ip_dst in dst[0][0]:
-                    log.debug("connection found before")
-                    alreadyDst =True
+            if hst.isConnected(ip_dst,Host.TRANSP_BOTH):
+                log.debug("connection found before")
+                alreadyDst =True
+
 
     if not alreadySrc and not (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
         #add host to host list
         h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
         h.addConnection(ip_dst)
         topo.hosts.append(h)
-    elif not alreadyDst and not (ip_dst.inNetwork(SDN_network, netmask=SDN_NETMASK)):
+    elif not alreadyDst and not ip_dst.inNetwork(SDN_network):#, netmask=SDN_NETMASK)):
         for h in topo.hosts:
             if h.ip == ip_src:
                 if h.isGaming:
                     log.debug("Adding link with the lowest delay path")
-                    #TODO add with delay graph
+                    path = topo.get_path(topo.get_gf(topo.DELAY_OPT),h.ip, ip_dst)
+                    h.addConnection(ip_dst,path)
+                    topo.add_path_through_gw(h.ip, ip_dst, topo.DELAY_OPT)
                 elif h.traffic:
                     log.debug("Adding link with the worst graph")
+                    path = topo.get_path(topo.get_gf(topo.PCK_ERROR_OPT))
+                    h.addConnection(ip_dst,path)
+                    topo.add_path_through_gw(h.ip, ip_dst, topo.PCK_ERROR_OPT)
                 else:
-                    topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
-                    h.lastChange = time.time() #update last time the node changedthe graph
+                    path = topo.get_path(topo.get_gf(topo.DEFAULT_OPT))
+                    topo.add_path_through_gw(ip_src, ip_dst, DEFAULT_OPT)
+                    h.addConnection(ip_dst,path)
 
 
 
@@ -198,7 +209,7 @@ def _handle_ip_packet(event):
         """ pacchetti di controllo """
         #non esegue nulla in quanto se ne occupa network_performance
         pass
-    elif (ip_src.in_network(SDN_network, netmask=SDN_NETMASK)):
+    elif (ip_src.in_network(SDN_network):#, netmask=SDN_NETMASK)):
         """ sorgente e' nella sotto rete SDN """
         #verifico se gia' presente nel grafo
         #log.debug("sorgente nella rete SDN")
@@ -267,6 +278,13 @@ def launch(__INSTANCE__=None, **kw):
                 topo.hosts.append(h) # add the host as the first one
                 # print("added ext host" )
                 log.info("added the external host and ready for finding the switch/port to which forward all external packets")
+        elif(k.find "net")>-1:
+            log.debug("parsing network address")
+            if len(v) >=9 and len(v)<=18 : # "192.168.240.240/24" is the net address form
+                n = v.split('/') # divide the cidr notation
+                SDN_network = IPAddr(n[0],int(n[1])) #
+                # print("added ext host" )
+                log.info("added the internal network address")
 
     pox.topology.launch()
     pox.openflow.discovery.launch()

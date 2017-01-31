@@ -26,6 +26,8 @@ hosts=[] # list of object of type Host
 __DEFAULT_RULES_PRIORITY = 50
 __DEFAULT_ARP_PATH = 150
 __DEFAULT_IP_PATH = 1000
+__DEFAULT_EXT_NET_RULE=10
+__DEFAULT_INT_NET_RULE= 30
 
 IP_TIMEOUT = 60 #seconds
 PCK_ERROR_OPT = 1
@@ -118,7 +120,7 @@ def save_graph():
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
 
-def add_link(dpid1, port1, dpid2, port2):
+def add_link(dpid1, port1, dpid2, port2, isHost=False):
     """
     Inside add_link function, add switch and link
     """
@@ -126,8 +128,9 @@ def add_link(dpid1, port1, dpid2, port2):
     add_switch(dpid2)
     switch[dpid1].port_dpid[port1] = dpid2
     switch[dpid1].dpid_port[dpid2] = port1
-    switch[dpid2].port_dpid[port2] = dpid1
-    switch[dpid2].dpid_port[dpid1] = port2
+    if not isHost: # do the reverse only if the other is a switch
+        switch[dpid2].port_dpid[port2] = dpid1
+        switch[dpid2].dpid_port[dpid1] = port2
     grafo.add_edge(dpid1, dpid2)
     pck_error_gf.add_edge(dpid1, dpid2, weight=0)
     delay_gf.add_edge(dpid1, dpid2, weight=1)
@@ -186,7 +189,7 @@ def get_gf(option):
     elif option == DEFAULT_OPT:
         return grafo
 
-def add_path_to_gw(ip_int, ip_ext, option):
+def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
 
     path = nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_ext, weight='weight')
     #devo fare in modo di riconoscere uno switch come gateway
@@ -230,10 +233,10 @@ def add_path(ip_src, ip_dst, option):
         msg.actions.append(of.ofp_action_output(port = pt_pre_hope ))
         core.openflow.sendToDPID(sw_list[i], msg)
 
-def add_default_rules(dpid):
+def add_default_rules(dpid, net = None):
     """
     add default rules on new switch
-    arp request flooding
+    arp request flooding and in/out network traffic
     """
     msg = of.ofp_flow_mod()
     msg.priority = __DEFAULT_RULES_PRIORITY
@@ -248,6 +251,41 @@ def add_default_rules(dpid):
     msg.match.nw_src = IPAddr("100.100.100.1")
     msg.actions.append(of.ofp_action_output(port = of.OFPP_CONTROLLER ))
     core.openflow.sendToDPID(dpid, msg)
+
+    # the default rules: if it's in the network, flood. otherwise go through the gateway
+    #to reach the internet
+    if net is not None:
+        _drop_private_IPs(net) # drop all the connections through private IPs that are not in the network
+                                # and send PacketIn to controller
+        # flood internal network
+        msg = of.ofp_flow_mod()
+        msg.priority = __DEFAULT_INT_NET_RULE # lowest rule ever
+        msg.match.dl_type = 0x800 #ip type
+        msg.match.nw_dst = net
+        acts = []
+        acts.append(of.ofp_action_output(port = of.OFPP_CONTROLLER)) # packetIn
+        acts.append(of.ofp_action_output(port=of.OFPP_ALL)) # flood the network
+        msg.actions = acts
+        core.openflow.sendToDPID(dpid, msg)
+
+        if dpid == hosts[0].switch[0]: # the switch is connected to the NATP router
+            sw = switch[dpid] # I have all the characteristics of the switch
+
+            msg = of.ofp_flow_mod()
+            # second lowest rule. If this switch is added after others, this rule will overcome
+            #the default rule to the gateway
+            msg.priority = __DEFAULT_EXT_NET_RULE + 2
+            msg.match.dl_type = 0x800 #ip type
+            msg.actions.append(of.ofp_action_output(port=host[0].switch[1]))
+            core.openflow.sendToDPID(dpid, msg)
+        #see if the switch for the internet has been found and this dpid is not connected to the router
+        elif host[0].mac == EthAddr("ff:ff:ff:ff:ff:ff"):
+            add_path_to_gw(dpid,host[0].ip,DEFAULT_OPT,isDpid=True) # send also the PacketIn
+
+
+
+
+        # send to the packet to the next switch
 
     #MORE DEFAULT RULES
 
@@ -303,12 +341,16 @@ class my_Switch():
         core.openflow.sendToDPID(self.dpid, msg)
 
 class Host():
+    TRANSP_BOTH = 0
+    TCP=1
+    UDP=2
     def __init__(self, dpid,portN, ipAddr=None, macAddr=None ):
         if(ipAddr is not None and not isinstance(ipAddr,IPAddr)):
             raise("Invalid argument. ip address must be an IPAddr object")
         self.isGaming=False
         self.traffic = False
-        self.connectedTo = {}
+        self.connectedToTCP = {}
+        self.connectedToUDP = {}
         self.switch = ( dpid , portN) # tuple for the
         self.ip=ipAddr
         self.mac=macAddr
@@ -324,30 +366,67 @@ class Host():
     def getTraffic():
         return self.traffic
 
-    def addConnection(host,path=None):
+    def addConnection(host,path=None, t_type=TRANSP_BOTH):
         #update timer if ip exist
-        if(ip in self.connectedTo):
-            for host,tup in self.connectedTo:
-                self.connectedTo[host][1] = datetime.datetime.now()
-        #add ip
-        self.connectedTo.[host] = []
-        self.connectedTo[host].append(datetime.datetime.now())
-        if path:
-            for i,p in enumerate(path):
-                if connectedTo.path
-            self.connectedTo[host].append(path) # add the path to reach the node
+        if not isinstance(host,Host):
+        if(t_type == TRANSP_BOTH):
+            if path is not None: # add both traffic
+                log.debug("adding both transport connection to the host destination")
+            else:
+                log.debug("adding host to the connected one")
+            self.connectedToUDP[host] = (datetime.datetime.now(),path)
+            self.connectedToTCP[host] = (datetime.datetime.now(),path)
+            self.lastChange = datetime.datetime.now()
+        elif t_type == TCP:
+            if path is not None: # add both traffic
+                log.debug("adding TCP path to the host destination")
+            self.lastChange = datetime.datetime.now()
+            self.connectedToTCP[host] = (datetime.datetime.now(),path)
+            else:
+                log.debug("adding host to the connected one")
+        elif t_type == UDP
+            if path is not None: # add both traffic
+                log.debug("adding UDP path to the host destination")
+            else:
+                log.debug("adding host to the connected one via UDP")
+            self.lastChange = datetime.datetime.now()
+            self.connectedToUDP[host] = (datetime.datetime.now(),path)
 
-    def isConnected(ip):
-        """if is connected return the time since when it was connected [datetime.datetime]
+        else:
+            log.error("unknown option given for t_type")
+
+
+    def isConnected(ip,t_type):
+        """if is connected return the time since when it was connected [datetime.datetime] and
+        the path to that IP or Host
         otherwise return False"""
-        if(ip in self.connectedTo):
-            return [x[1] for x in self.connectedTo]
-        else: return False
+        if isinstance(ip,IPAddr):
+            for host,value in self.connectedToUDP:
+                if ip == host.ip and not t_type == TCP: # è un ip e sono in UDP o entrambe
+                    return value
+            for host,value in self.connectedToTCP:
+                if ip == host.ip and not t_type == UDP:
+                    return value
+            return False
+
+        elif isinstance(ip,Host):
+            for host,value in self.connectedToUDP:
+                if ip.ip == host.ip and not t_type == TCP: # è un ip e sono in UDP o entrambe
+                    return value
+            for host,value in self.connectedToTCP:
+                if ip.ip == host.ip and not t_type == UDP:
+                    return value
+            return False
+
 
     def cleanExpiredIp():
-        for p, conn in enumerate(self.connectedTo):
+        for p, conn in enumerate(self.connectedToTCP):
             if((conn[1]+IP_TIMEOUT)>datetime.datetime.now()):
-                del connectedTo[p] # remove the tuple
+                del connectedToTCP[p] # remove the tuple
+
+        for p, conn in enumerate(self.connectedToUDP):
+            if((conn[1]+IP_TIMEOUT)>datetime.datetime.now()):
+                del connectedToUDP[p] # remove the tuple
 
 def ipCleaner():
     for h in hosts:
