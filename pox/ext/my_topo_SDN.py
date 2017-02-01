@@ -15,7 +15,8 @@ log = core.getLogger()
 switch = {} #dizionario di switch dpid e' la chiave
 grafo = nx.Graph()          #grafo con vari attributi
 switch_gf = nx.Graph()      #grafo con solo gli switch
-pck_error_gf = nx.Graph()    #grafo pesato secondo il pathloss
+pck_error_min_gf = nx.Graph()    #grafo pesato secondo il pathloss
+pck_error_max_gf = nx.Graph()    #grafo pesato secondo il complementarepathloss
 delay_gf = nx.Graph()       #delay del link
 capacity_gf = nx.Graph()    #capacita' max link
 load_gf = nx.Graph()        #percentuale del caricamento del link in base alla sua capacita' max
@@ -34,7 +35,7 @@ PCK_ERROR_MIN_OPT = 1
 PCK_ERROR_MAX_OPT = 4
 DELAY_OPT     = 2
 DEFAULT_OPT   = 3
-LOAD_OPT = 5
+LOAD_OPT      = 5
 
 def add_host(dpid, mac, port, ip):
     """
@@ -47,12 +48,14 @@ def add_host(dpid, mac, port, ip):
         mac_to_ip[mac] = ip
         ip_to_switch[ip] = switch[dpid]
         grafo.add_node(ip)
-        pck_error_gf.add_node(ip)
+        pck_error_max_gf.add_node(ip)
+        pck_error_min_gf.add_node(ip)
         capacity_gf.add_node(ip)
         load_gf.add_node(ip)
 
         grafo.add_edge(dpid, ip)
-        pck_error_gf.add_edge(dpid, ip, weight=0)
+        pck_error_min_gf.add_edge(dpid, ip, weight=0)
+        pck_error_max_gf.add_edge(dpid, ip, weight=0)
         capacity_gf.add_edge(dpid, ip, weight=0)
         load_gf.add_edge(dpid, ip, weight=0)
         log.debug("add host %s", ip)
@@ -68,7 +71,7 @@ def add_switch(dpid):
     else:
         switch[dpid] = my_Switch(dpid)
         grafo.add_node(dpid)
-        pck_error_gf.add_node(dpid)
+        pck_error_min_gf.add_node(dpid)
         delay_gf.add_node(dpid)
         capacity_gf.add_node(dpid)
         load_gf.add_node(dpid)
@@ -77,7 +80,8 @@ def add_switch(dpid):
         add_default_rules(dpid)
 def rm_switch(dpid):
     grafo.remove_node(dpid)
-    pck_error_gf.remove_node(dpid)
+    pck_error_min_gf.remove_node(dpid)
+    pck_error_max_gf.remove_node(dpid)
     delay_gf.add_node(dpid)
     capacity_gf.remove_node(dpid)
     switch_gf.remove_node(dpid)
@@ -91,11 +95,18 @@ def save_graph():
     plt.savefig("grafo.png")      #salva l'immagine
     plt.clf()                     #elimina l'immagine corrente dalla libreria
 
-    edge_labels=nx.draw_networkx_edge_labels(pck_error_gf,pos,font_size=12)
-    nx.draw_networkx(pck_error_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    edge_labels=nx.draw_networkx_edge_labels(pck_error_min_gf,pos,font_size=12)
+    nx.draw_networkx(pck_error_min_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_gf.png")   #salva l'immagine
+    plt.savefig("pck_error_min_gf.png")   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
+
+    edge_labels=nx.draw_networkx_edge_labels(pck_error_max_gf,pos,font_size=12)
+    nx.draw_networkx(pck_error_max_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
+    plt.axis('off')
+    plt.savefig("pck_error_max_gf.png")   #salva l'immagine
+    plt.clf()                        #elimina l'immagine corrente dalla libreria
+
 
     edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
     nx.draw_networkx(delay_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
@@ -134,7 +145,8 @@ def add_link(dpid1, port1, dpid2, port2, isHost=False):
         switch[dpid2].port_dpid[port2] = dpid1
         switch[dpid2].dpid_port[dpid1] = port2
     grafo.add_edge(dpid1, dpid2)
-    pck_error_gf.add_edge(dpid1, dpid2, weight=0)
+    pck_error_min_gf.add_edge(dpid1, dpid2, weight=0)
+    pck_error_max_gf.add_edge(dpid1, dpid2, weight=0)
     delay_gf.add_edge(dpid1, dpid2, weight=1)
     switch_gf.add_edge(dpid1, dpid2, weight=1)
     capacity_gf.add_edge(dpid1, dpid2, weight=0)
@@ -144,7 +156,8 @@ def rm_link(dpid1, port1, dpid2, port2):
     x = True
     try:
         grafo.remove_edge(dpid1, dpid2)
-        pck_error_gf.remove_edge(dpid1, dpid2)
+        pck_error_min_gf.remove_edge(dpid1, dpid2)
+        pck_error_max_gf.remove_edge(dpid1, dpid2)
         delay_gf.add_edge(dpid1, dpid2)
         switch_gf.add_edge(dpid1, dpid2)
         capacity_gf.add_edge(dpid1, dpid2)
@@ -169,7 +182,8 @@ def link_pck_error(dpid1, dpid2, value):
     """
     modifica il peso del link del grafo pck_error_gf
     """
-    pck_error_gf[dpid1][dpid2]['weight']=value
+    pck_error_min_gf[dpid1][dpid2]['weight']=value
+    pck_error_max_gf[dpid1][dpid2]['weight']=1-value
 
 def link_load(dpid1, dpid2, value):
     """
@@ -184,8 +198,10 @@ def link_capacity(dpid1, dpid2, value):
     capacity_gf[dpid1][dpid2]['weight']=value
 
 def get_gf(option):
-    if option == PCK_ERROR_OPT:
-        return pck_error_gf
+    if option == PCK_ERROR_MIN_OPT:
+        return pck_error_min_gf
+    elif option == PCK_ERROR_MAX_OPT:
+        return pck_error_max_gf
     elif option == DELAY_OPT:
         return delay_gf
     elif option == DEFAULT_OPT:
@@ -317,7 +333,6 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                         #install new rules
                         for j in range (i,len(newPath)-2):
                             msg=of.ofp_flow_mod()
-
                             msg.priority = __DEFAULT_IP_PATH
                             msg.match.nw_dst = IPAddr(str(ip_dst))
                             msg.match.nw_src = IPAddr(str(ip_src))
@@ -376,7 +391,6 @@ def add_default_rules(dpid, net = None):
             msg.match.dl_type = 0x800 #ip type
             msg.actions.append(of.ofp_action_output(port=host[0].switch[1]))
             core.openflow.sendToDPID(dpid, msg)
-
         else:
             msg = of.ofp_flow_mod()
             # second lowest rule. If this switch is added after others, this rule will overcome
@@ -388,7 +402,6 @@ def add_default_rules(dpid, net = None):
             acts.append(of.ofp_action_output(port=of.OFPP_CONTROLLER))
             msg.actions.append()
             core.openflow.sendToDPID(dpid, msg)
-
 
         # send to the packet to the next switch
 

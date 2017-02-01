@@ -89,7 +89,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             log.info("port %i is a 10Gbps",port.port_no)
 
         #Find the port where is connected the standard router
-        if port.hw_addr == topo.hosts[0].mac:
+        if port.hw_addr == topo.hosts[0].mac: #is the switch with route to internet
             log.info("found port to the internet")
             EXTERNAL = (event.dpid,port.port_no)
             topo.hosts[0].switch=EXTERNAL
@@ -102,6 +102,8 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             sw.mac_port[port.hw_addr]=port.port_no
             #add the link to the external
             topo.add_link(event.dpid,port.port_no,topo.hosts[0].ip,port.port_no,isHost=True)
+            #all ip_dst == external through port
+            topo.add_default_ext_roules(event.connection.dpid, SDN_network, port)
 
         #default rules
         # if SDN_network != "": # I set the default network
@@ -192,7 +194,7 @@ def _handle_ip_packet(event):
             if(h.ip == ip.src):
                 h.addConnection(ip_dst)
         log.debug("\n %s aggiunto nella rete", ip_src)
-    
+
 def _show_topo():
     """
     function to show the graph on a separate process
