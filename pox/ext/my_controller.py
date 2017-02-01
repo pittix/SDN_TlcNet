@@ -85,7 +85,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             log.info("port %i is a 10Gbps",port.port_no)
 
         #Find the port where is connected the standard router
-        if port.hw_addr == topo.hosts[0].mac:
+        if port.hw_addr == topo.hosts[0].mac: #is the switch with route to internet
             log.info("found port to the internet")
             EXTERNAL = (event.dpid,port.port_no)
             topo.hosts[0].switch=EXTERNAL
@@ -98,6 +98,8 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             sw.mac_port[port.hw_addr]=port.port_no
             #add the link to the external
             topo.add_link(event.dpid,port.port_no,topo.hosts[0].ip,port.port_no,isHost=True)
+            #all ip_dst == external through port
+            topo.add_default_ext_roules(event.connection.dpid, SDN_network, port)
 
         #default rules
         if SDN_network != "": # I set the default network
@@ -168,47 +170,55 @@ def _handle_ip_packet(event):
 
     ip_src = IPAddr(ip_pck.srcip) #ip sorgente
     ip_dst = IPAddr(ip_pck.dstip) #ip destinatario
-    alreadySrc = False
-    alreadyDst=False
-    for hst in topo.hosts:
-        if ip_src == hst.ip:
-            alreadySrc=True
-            log.debug("src host already found.")
-            if hst.isConnected(ip_dst,Host.TRANSP_BOTH):
-                log.debug("connection found before")
-                alreadyDst =True
 
-
-    if not alreadySrc and not (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
-        #add host to host list
-        h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
-        h.addConnection(ip_dst)
-        topo.hosts.append(h)
-    elif not alreadyDst and not ip_dst.inNetwork(SDN_network):#, netmask=SDN_NETMASK)):
-        for h in topo.hosts:
-            if h.ip == ip_src:
-                if h.isGaming:
-                    log.debug("Adding link with the lowest delay path")
-                    path = topo.get_path(topo.get_gf(topo.DELAY_OPT),h.ip, ip_dst)
-                    h.addConnection(ip_dst,path)
-                    topo.add_path_through_gw(h.ip, ip_dst, topo.DELAY_OPT)
-                elif h.traffic:
-                    log.debug("Adding link with the worst graph")
-                    path = topo.get_path(topo.get_gf(topo.PCK_ERROR_OPT))
-                    h.addConnection(ip_dst,path)
-                    topo.add_path_through_gw(h.ip, ip_dst, topo.PCK_ERROR_OPT)
-                else:
-                    path = topo.get_path(topo.get_gf(topo.DEFAULT_OPT))
-                    topo.add_path_through_gw(ip_src, ip_dst, DEFAULT_OPT)
-                    h.addConnection(ip_dst,path)
-
-
-
+    # alreadySrc=False
+    # alreadyDst=False
+    # for hst in topo.hosts:
+    #     if ip_src == hst.ip:
+    #         alreadySrc=True
+    #         hst.mac=event.src_mac
+    #         hst.switch=(event.dpid,event.in_port)
+    #
+    #         log.debug("src host already found.")
+    #         if hst.isConnected(ip_dst,Host.TRANSP_BOTH):
+    #             log.debug("connection found before")
+    #             alreadyDst =True
+    #
+    #
+    # if not alreadySrc and not (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
+    #     #add host to host list
+    #     h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
+    #     h.addConnection(ip_dst)
+    #     topo.hosts.append(h)
+    #
+    # elif ((IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
+    #     """ pacchetti di controllo """
+    #     #non esegue nulla in quanto se ne occupa network_performance
+    #     return
+    #
+    # elif not alreadyDst and not ip_dst.inNetwork(SDN_network):#, netmask=SDN_NETMASK)):
+    #     for h in topo.hosts:
+    #         if h.ip == ip_src:
+    #             if h.isGaming:
+    #                 log.debug("Adding link with the lowest delay path")
+    #                 path = topo.get_path(topo.get_gf(topo.DELAY_OPT),h.ip, ip_dst)
+    #                 h.addConnection(ip_dst,path)
+    #                 topo.add_path_through_gw(h.ip, ip_dst, topo.DELAY_OPT)
+    #             elif h.traffic:
+    #                 log.debug("Adding link with the worst graph")
+    #                 path = topo.get_path(topo.get_gf(topo.PCK_ERROR_MAX_OPT))
+    #                 h.addConnection(ip_dst,path)
+    #                 topo.add_path_through_gw(h.ip, ip_dst, topo.PCK_ERROR_MAX_OPT)
+    #             else:
+    #                 path = topo.get_path(topo.get_gf(topo.DEFAULT_OPT))
+    #                 topo.add_path_through_gw(ip_src, ip_dst, DEFAULT_OPT)
+    #                 h.addConnection(ip_dst,path)
+    #
 
     if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
         """ pacchetti di controllo """
         #non esegue nulla in quanto se ne occupa network_performance
-        pass
+        return
     elif (ip_src.in_network(SDN_network):#, netmask=SDN_NETMASK)):
         """ sorgente e' nella sotto rete SDN """
         #log.debug("is_src %s, il_log: %s", ip_src, topo.is_logged(ip_src) )
@@ -216,8 +226,11 @@ def _handle_ip_packet(event):
             pass
         else:
             topo.add_host(event.connection.dpid, src_mac, event.port, ip_src)
+            h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
+            h.addConnection(ip_dst)
+            topo.hosts.append(h)
             log.debug("\n %s aggiunto nella rete", ip_src)
-
+    
         if (ip_dst.inNetwork(SDN_network, netmask=SDN_NETMASK)):
         #log.debug("sorgente nella rete SDN 3")
             """ destinatario nella sotto rete SDN """
