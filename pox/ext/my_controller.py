@@ -109,8 +109,6 @@ def _handle_ip_packet(event):
         pass
     elif (IP.IPv4Address(ip_src) in IP.IPv4Network(SDN_network)):
         """ sorgente e' nella sotto rete SDN """
-        #verifico se gia' presente nel grafo
-        #log.debug("sorgente nella rete SDN")
         #log.debug("is_src %s, il_log: %s", ip_src, topo.is_logged(ip_src) )
         if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
             pass
