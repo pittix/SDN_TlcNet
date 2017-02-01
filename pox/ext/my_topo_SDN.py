@@ -24,11 +24,11 @@ ip_to_switch = {} #dizionario in cui l'ip solo le chiavi e i valori gli elementi
 mac_to_ip = {} #per gli host
 hosts=[] # list of object of type Host
 
-__DEFAULT_RULES_PRIORITY = 500
-__DEFAULT_ARP_PATH = 50
-__DEFAULT_IP_PATH = 1000
-__DEFAULT_EXT_NET_RULE=10
-__DEFAULT_INT_NET_RULE= 30
+DEFAULT_RULES_PRIORITY = 500
+DEFAULT_ARP_PATH = 50
+DEFAULT_IP_PATH = 1000
+DEFAULT_EXT_NET_RULE=10
+DEFAULT_INT_NET_RULE= 30
 
 IP_TIMEOUT = 60 #seconds
 PCK_ERROR_MIN_OPT = 1
@@ -106,7 +106,6 @@ def save_graph():
     plt.axis('off')
     plt.savefig("pck_error_max_gf.png")   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
-
 
     edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
     nx.draw_networkx(delay_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
@@ -222,6 +221,7 @@ def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
     #devo fare in modo di riconoscere uno switch come gateway
     #capire nella realta' come arrivano i dpid
 
+
 def add_path(ip_src, ip_dst, option, isExt=False):
     if isExt:
         newPath=get_path(ip_int,hosts[0].ip,option)
@@ -233,89 +233,56 @@ def add_path(ip_src, ip_dst, option, isExt=False):
     else:
         h.addConnection(ip_ext,newPath,TCP)
     oldPath = h.isConnected(ip_ext)
-        if oldPath is False:
+    if oldPath is False:
         #add path as it's the first time:
-            for i in range (1, len(newPath) - 2):
-                #install fluxes from ip_src to ip_dst
-                msg = of.ofp_flow_mod()
-                msg.priority = __DEFAULT_IP_PATH
-                msg.match.nw_dst = IPAddr(str(ip_dst))
-                msg.match.nw_src = IPAddr(str(ip_src))
-                msg.match.nw_proto = 17 # UDP
-                msg.match.dl_type = 0x800 #ip
-                pt_next_hop = switch[newPath[i]].dpid_port[newPath[i+1]] #TODO
-                msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
-                core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
-            #the reverse
-            for i in range (2, len(newPath) - 1):
-                #install fluxes from ip_dst to ip_src
-                msg = of.ofp_flow_mod()
-                msg.priority = __DEFAULT_IP_PATH
-                msg.match.nw_dst = IPAddr(str(ip_src))
-                msg.match.nw_src = IPAddr(str(ip_dst))
-                msg.match.dl_type = 0x800 #ip
-                msg.match.nw_proto = 17 #UDP
-                pt_pre_hop = switch[newPath[i]].dpid_port[newPath[i-1]] #TODO
-                msg.actions.append(of.ofp_action_output(port = pt_pre_hop ))
-                core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
-            h.addConnection(hosts[0],path,UDP)
-        else:
-            for i in range(1,max(len(oldPath,newPath))-2): # first two rules are the same (Host obj and swtich)
-                if oldPath[i-1] == newPath[i-1]: #same switch
-                    if oldPath[i] == newPath[i]: # also the same next hop
-                        if oldPath[i+1] == newPath[i+1]:
-                            continue
-                        else: # the i+1 switch is different
+        for i in range (1, len(newPath) - 2):
+            #install fluxes from ip_src to ip_dst
+            msg = of.ofp_flow_mod()
+            msg.priority = DEFAULT_IP_PATH
+            msg.match.nw_dst = IPAddr(str(ip_dst))
+            msg.match.nw_src = IPAddr(str(ip_src))
+            msg.match.nw_proto = 17 # UDP
+            msg.match.dl_type = 0x800 #ip
+            pt_next_hop = switch[newPath[i]].dpid_port[newPath[i+1]] #TODO
+            msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
+            core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
+        #the reverse
+        for i in range (2, len(newPath) - 1):
+            #install fluxes from ip_dst to ip_src
+            msg = of.ofp_flow_mod()
+            msg.priority = DEFAULT_IP_PATH
+            msg.match.nw_dst = IPAddr(str(ip_src))
+            msg.match.nw_src = IPAddr(str(ip_dst))
+            msg.match.dl_type = 0x800 #ip
+            msg.match.nw_proto = 17 #UDP
+            pt_pre_hop = switch[newPath[i]].dpid_port[newPath[i-1]] #TODO
+            msg.actions.append(of.ofp_action_output(port = pt_pre_hop ))
+            core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
+        h.addConnection(hosts[0],path,UDP)
+    else:
+        for i in range(1,max(len(oldPath,newPath))-2): # first two rules are the same (Host obj and swtich)
+            if oldPath[i-1] == newPath[i-1]: #same switch
+                if oldPath[i] == newPath[i]: # also the same next hop
+                    if oldPath[i+1] == newPath[i+1]:
+                        continue
+                    else: # the i+1 switch is different
 
-                            msg = of.ofp_flow_mod()
-                            msg.command = of.OFPFC_MODIFY
-                            msg.match.nw_dst = IPAddr(str(ip_dst))
-                            msg.match.nw_src = IPAddr(str(ip_src))
-                            msg.match.nw_proto = 17 # UDP
-                            msg.priority = __DEFAULT_IP_PATH
-                            msg.match.dl_type = 0x800 #ip
-                            pt_next_hop = switch[newPath[i-1]].dpid_port[newPath[i]]
-                            msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
-                            core.openflow.sendToDPID(newPath[i], msg) #switch i-th
-                            #delete previous rules for the other switches
+                        msg = of.ofp_flow_mod()
+                        msg.command = of.OFPFC_MODIFY
+                        msg.match.nw_dst = IPAddr(str(ip_dst))
+                        msg.match.nw_src = IPAddr(str(ip_src))
+                        msg.match.nw_proto = 17 # UDP
+                        msg.priority = DEFAULT_IP_PATH
+                        msg.match.dl_type = 0x800 #ip
+                        pt_next_hop = switch[newPath[i-1]].dpid_port[newPath[i]]
+                        msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
+                        core.openflow.sendToDPID(newPath[i], msg) #switch i-th
+                        #delete previous rules for the other switches
 
-                            for j in range(i,len(oldPath)-1):
-                                msg = of.ofp_flow_mod()
-                                msg.command = of.OFPFC_DELETE
-                                msg.priority = __DEFAULT_IP_PATH
-                                msg.match.nw_dst = IPAddr(str(ip_dst))
-                                msg.match.nw_src = IPAddr(str(ip_src))
-                                msg.match.nw_proto = 17 # UDP
-                                msg.match.dl_type = 0x800 #ip
-                                core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
-                                #delete also the reverse path
-                                msg = of.ofp_flow_mod()
-                                msg.command = of.OFPFC_DELETE
-                                msg.priority = __DEFAULT_IP_PATH
-                                msg.match.nw_dst = IPAddr(str(ip_src))
-                                msg.match.nw_src = IPAddr(str(ip_dst))
-                                msg.match.nw_proto = 17 # UDP
-                                msg.match.dl_type = 0x800 #ip
-                                core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
-                            #install new rules
-                            for j in range (i,len(newPath)-2):
-                                msg=of.ofp_flow_mod()
-
-                                msg.priority = __DEFAULT_IP_PATH
-                                msg.match.nw_dst = IPAddr(str(ip_dst))
-                                msg.match.nw_src = IPAddr(str(ip_src))
-                                msg.match.dl_type = 0x800 #ip
-                                pt_next_hope = switch[newPath[i]].dpid_port[newPath[i+1]]
-                                msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
-                                core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
-                            h.addConnection(ip_ext,newPath,UDP)
-                            return
-                    else:
-                        #TODO cancella e reinstalla
                         for j in range(i,len(oldPath)-1):
                             msg = of.ofp_flow_mod()
                             msg.command = of.OFPFC_DELETE
-                            msg.priority = __DEFAULT_IP_PATH
+                            msg.priority = DEFAULT_IP_PATH
                             msg.match.nw_dst = IPAddr(str(ip_dst))
                             msg.match.nw_src = IPAddr(str(ip_src))
                             msg.match.nw_proto = 17 # UDP
@@ -324,7 +291,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                             #delete also the reverse path
                             msg = of.ofp_flow_mod()
                             msg.command = of.OFPFC_DELETE
-                            msg.priority = __DEFAULT_IP_PATH
+                            msg.priority = DEFAULT_IP_PATH
                             msg.match.nw_dst = IPAddr(str(ip_src))
                             msg.match.nw_src = IPAddr(str(ip_dst))
                             msg.match.nw_proto = 17 # UDP
@@ -333,15 +300,48 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                         #install new rules
                         for j in range (i,len(newPath)-2):
                             msg=of.ofp_flow_mod()
-                            msg.priority = __DEFAULT_IP_PATH
+
+                            msg.priority = DEFAULT_IP_PATH
                             msg.match.nw_dst = IPAddr(str(ip_dst))
                             msg.match.nw_src = IPAddr(str(ip_src))
                             msg.match.dl_type = 0x800 #ip
                             pt_next_hope = switch[newPath[i]].dpid_port[newPath[i+1]]
                             msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
                             core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
+                        h.addConnection(ip_ext,newPath,UDP)
+                        return
                 else:
-                    log.error("S_i-1 and S_i-1' should always be the same")
+                    #TODO cancella e reinstalla
+                    for j in range(i,len(oldPath)-1):
+                        msg = of.ofp_flow_mod()
+                        msg.command = of.OFPFC_DELETE
+                        msg.priority = DEFAULT_IP_PATH
+                        msg.match.nw_dst = IPAddr(str(ip_dst))
+                        msg.match.nw_src = IPAddr(str(ip_src))
+                        msg.match.nw_proto = 17 # UDP
+                        msg.match.dl_type = 0x800 #ip
+                        core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
+                        #delete also the reverse path
+                        msg = of.ofp_flow_mod()
+                        msg.command = of.OFPFC_DELETE
+                        msg.priority = DEFAULT_IP_PATH
+                        msg.match.nw_dst = IPAddr(str(ip_src))
+                        msg.match.nw_src = IPAddr(str(ip_dst))
+                        msg.match.nw_proto = 17 # UDP
+                        msg.match.dl_type = 0x800 #ip
+                        core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
+                    #install new rules
+                    for j in range (i,len(newPath)-2):
+                        msg=of.ofp_flow_mod()
+                        msg.priority = DEFAULT_IP_PATH
+                        msg.match.nw_dst = IPAddr(str(ip_dst))
+                        msg.match.nw_src = IPAddr(str(ip_src))
+                        msg.match.dl_type = 0x800 #ip
+                        pt_next_hope = switch[newPath[i]].dpid_port[newPath[i+1]]
+                        msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
+                        core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
+            else:
+                log.error("S_i-1 and S_i-1' should always be the same")
 
 
 def add_default_rules(dpid, net = None):
@@ -350,18 +350,19 @@ def add_default_rules(dpid, net = None):
     arp request flooding and in/out network traffic
     """
     msg = of.ofp_flow_mod()
-    msg.priority = __DEFAULT_RULES_PRIORITY
+    msg.priority = DEFAULT_RULES_PRIORITY
     msg.match.dl_type = 0x806 #arp reques
     msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD ))
     core.openflow.sendToDPID(dpid, msg)
 
     #msg del delay discovery
     msg = of.ofp_flow_mod()
-    msg.priority = __DEFAULT_RULES_PRIORITY
+    msg.priority = DEFAULT_RULES_PRIORITY
     msg.match.dl_type = 0x800 #ip type
     msg.match.nw_src = IPAddr("100.100.100.1")
     msg.actions.append(of.ofp_action_output(port = of.OFPP_CONTROLLER ))
     core.openflow.sendToDPID(dpid, msg)
+
 
     # the default rules: if it's in the network, flood. otherwise go through the gateway
     #to reach the internet
@@ -370,12 +371,12 @@ def add_default_rules(dpid, net = None):
                                 # and send PacketIn to controller
         # flood internal network
         msg = of.ofp_flow_mod()
-        msg.priority = __DEFAULT_INT_NET_RULE # lowest rule ever
+        msg.priority = DEFAULT_INT_NET_RULE # lowest rule ever
         msg.match.dl_type = 0x800 #ip type
         msg.match.nw_dst = net
         acts = []
         acts.append(of.ofp_action_output(port = of.OFPP_CONTROLLER)) # packetIn
-        acts.append(of.ofp_action_output(port=of.OFPP_ALL)) # flood the network
+#        acts.append(of.ofp_action_output(port=of.OFPP_ALL)) # flood the network
         msg.actions = acts
         core.openflow.sendToDPID(dpid, msg)
 
@@ -387,24 +388,32 @@ def add_default_rules(dpid, net = None):
             msg = of.ofp_flow_mod()
             # second lowest rule. If this switch is added after others, this rule will overcome
             #the default rule to the gateway
-            msg.priority = __DEFAULT_EXT_NET_RULE
+            msg.priority = DEFAULT_EXT_NET_RULE
             msg.match.dl_type = 0x800 #ip type
             msg.actions.append(of.ofp_action_output(port=host[0].switch[1]))
             core.openflow.sendToDPID(dpid, msg)
-        else:
-            msg = of.ofp_flow_mod()
-            # second lowest rule. If this switch is added after others, this rule will overcome
-            #the default rule to the gateway
-            msg.priority = __DEFAULT_EXT_NET_RULE
-            msg.match.dl_type = 0x800 #ip type
-            acts=[]
-            acts.append(of.ofp_action_output(port=of.OFPP_ALL))
-            acts.append(of.ofp_action_output(port=of.OFPP_CONTROLLER))
-            msg.actions.append()
-            core.openflow.sendToDPID(dpid, msg)
-
-        # send to the packet to the next switch
-
+    #     else:
+    #         msg = of.ofp_flow_mod()
+    #         # second lowest rule. If this switch is added after others, this rule will overcome
+    #         #the default rule to the gateway
+    #         msg.priority = DEFAULT_EXT_NET_RULE
+    #         msg.match.dl_type = 0x800 #ip type
+    #         acts=[]
+    #         acts.append(of.ofp_action_output(port=of.OFPP_ALL))
+    #         acts.append(of.ofp_action_output(port=of.OFPP_CONTROLLER))
+    #         msg.actions=acts
+    #         core.openflow.sendToDPID(dpid, msg)
+    # else:
+    #     msg = of.ofp_flow_mod()
+    #     # second lowest rule. If this switch is added after others, this rule will overcome
+    #     #the default rule to the gateway
+    #     msg.priority = DEFAULT_EXT_NET_RULE
+    #     msg.match.dl_type = 0x800 #ip type
+    #     acts=[]
+    #     acts.append(of.ofp_action_output(port=of.OFPP_ALL))
+    #     acts.append(of.ofp_action_output(port=of.OFPP_CONTROLLER))
+    #     msg.actions=acts
+    #     core.openflow.sendToDPID(dpid, msg)
     #MORE DEFAULT RULES
 
 def ip_connected(ip1, ip2):
@@ -428,12 +437,14 @@ class my_Switch():
         self.port_mac = {}
         self.mac_port = {}
         self.port_capacity={} # maximum port capacity in Mbps
-        # self.host_gaming={} # if port has a gaming host, value is True
-        # self.heavy_traffic={} # if port has an host who is making a lot of traffic, here is true
+        self.host_gaming={} # if port has a gaming host, value is True
+        self.host_traffic={} # if port has an host who is making a lot of traffic, here is true
 
     #def add_host(self, mac, porta, ip):
-    def add_host(h, port):
+    def add_host(self, mac , port, ip):
         "add host on the switch's port"
+        h=Host(self.dpid,port,ipAddr=ip,macAddr=mac)
+        hosts.append(h)
         if ( not isinstance(h,Host)):
             raise("h not a member of class host in my_Switch.add_host")
 
@@ -444,15 +455,16 @@ class my_Switch():
         #     self.port_dpid[porta] = ip
         #     self.port_mac[porta] = mac
         #     self.mac_port[mac] = porta
-        self.port_dpid[port]=h
+        self.port_dpid[port]=ip
         msg = of.ofp_flow_mod()
-        msg.priority = 100
+        msg.priority = DEFAULT_ARP_PATH
         msg.match.dl_type = 0x806 #arp reques
         msg.match.dl_dst = EthAddr(str(h.mac))
         msg.actions.append(of.ofp_action_output(port = port ))
         core.openflow.sendToDPID(self.dpid, msg)
+
         msg = of.ofp_flow_mod()
-        msg.priority = 1000
+        msg.priority = DEFAULT_IP_PATH
         msg.match.nw_dst = IPAddr(str(h.ip))
         msg.match.dl_type = 0x800 #ip
         msg.actions.append(of.ofp_action_output(port = port ))
@@ -479,18 +491,18 @@ class Host():
         self.isGaming=g
     def isGaming(self):
         return self.isGaming
-    def setTraffic(t):
+    def setTraffic(self,t):
         self.traffic=t
-    def getTraffic():
+    def getTraffic(self):
         return self.traffic
 
-    def addConnection(host,path=None, t_type=TRANSP_BOTH):
+    def addConnection(self,host,path=None, t_type=TRANSP_BOTH):
         #update timer if ip exist
         if not isinstance(host,Host):
             log.debug("TODO")
 
             #dsth = [h in hosts if h.ip == host]
-        if(t_type == TRANSP_BOTH):
+        if(t_type == Host.TRANSP_BOTH):
             if path is not None: # add both traffic
                 log.debug("adding both transport connection to the host destination")
             else:
@@ -518,7 +530,7 @@ class Host():
             log.error("unknown option given for t_type")
 
 
-    def isConnected(ip,t_type):
+    def isConnected(self,ip,t_type):
         """if is connected return the time since when it was connected [datetime.datetime] and
         the path to that IP or Host
         otherwise return False"""
@@ -541,7 +553,7 @@ class Host():
             return False
 
 
-    def cleanExpiredIp():
+    def cleanExpiredIp(self):
         for p, conn in enumerate(self.connectedToTCP):
             if((conn[1]+IP_TIMEOUT)>datetime.datetime.now()):
                 del connectedToTCP[p] # remove the tuple

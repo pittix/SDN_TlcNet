@@ -212,14 +212,14 @@ def _setTraffic(flow_stat,dpid):
         myTopo.link_load(dpid, dpid2, utilization)
         if(utilization>TRAFFIC_THRES): #byte for packet
             log.debug("on dpid %s there's an host who is congestioning. Throughput/Capacity=%.3f",dpid_to_str(dpid),utilization)
-        myTopo.switch[dpid].host_traffic[port["Pnum"]] = True
+        myTopo.switch[dpid].host_traffic[table["actions"]] = True
         for h in myTopo.hosts:
-            if h.ip == myTopo.switch[dpid].port_dpid[port["Pnum"]]:
+            if h.ip == myTopo.switch[dpid].port_dpid[table["actions"]]:
                 h.traffic = True
             else:
-                myTopo.switch[dpid].host_traffic[port["Pnum"]] = False
+                myTopo.switch[dpid].host_traffic[table["actions"]] = False
                 for h in myTopo.hosts:
-                    if h.ip == myTopo.switch[dpid].port_dpid[port["Pnum"]]:
+                    if h.ip == myTopo.switch[dpid].port_dpid[table["actions"]]:
                         h.traffic = False
 
 def launch():
