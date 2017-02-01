@@ -4,11 +4,13 @@ import pox.openflow.libopenflow_01 as of
 import time
 from pox.lib.recoco import Timer  #per eseguire funzioni ricorsivamente
 import my_topo_SDN as myTopo
+from pox.lib.addresses import IPAddr
 log = core.getLogger()
 
 # from enum import Enum
 # from graphUpdater import GraphUpdater
-UPD_GRAPH = 1 # every 10 seconds update the graph weight
+UPD_GRAPH = 10 # every 10 seconds update the graph weight
+GAMING_THRES = 10 #bytes per packet
 
 dpid = list()
 DESC_STATS = 1
@@ -27,7 +29,7 @@ _stats.append({})
 _stats.append({})
 _stats.append({})
 _stats.append({})
-_stats.append({})
+# _stats.append({})
 class StatsHandler:
 
     @classmethod
@@ -38,7 +40,8 @@ class StatsHandler:
             _stats[sType][dpid]= {} #create the space to save the stat in this
 
         _stats[sType][dpid]=stats # overwrite the stats
-        #log.debug("added the stats for dpid %i",dpid)
+
+
     @classmethod
     def getStats(self,sType, dpid, port=None, table=None,flow=None):
         """ Try to get the stats for the specified dpid. If no stats is found, return None
@@ -55,7 +58,7 @@ class StatsHandler:
         if sType == QUEUE:
             return StatsHandler._getQueueStat(dpid,port)
         if sType == FLOW:
-            return StatsHandler._getQueueStat(dpid,flow)
+            return StatsHandler._getFlowStat(dpid,flow)
         # should never reach there
         else:
                 raise ValueError("stats type was not recognized, please choose one from StatsType")
@@ -71,6 +74,7 @@ class StatsHandler:
     @classmethod
     def _getTableStat(cls,dpid,table):
         if not dpid in _stats[TABLE]: # check if I have some stats for this dpid
+            log.debug("no table stats for switch %i",dpid )
             return None;
         if table is None: # check if all stats are needed
             return _stats[TABLE][dpid] # list of dictionary
@@ -108,9 +112,10 @@ class StatsHandler:
     @classmethod
     def _getFlowStat(cls,dpid,flow):
         if not dpid in _stats[FLOW]:
+            log.debug("no flow stats for switch %i",dpid )
             return None;
-        if flow is None:
-            return _stats[FLOW][dpid] # list of dictionary
+        # if flow is None:
+        return _stats[FLOW][dpid] # list of dictionary
         if not port in _stats[FLOW][dpid]:
             return None
         return _stats[FLOW][dpid][flow-1] # dictionary
@@ -119,8 +124,10 @@ class StatsHandler:
 
 def updateGraph():
     for sw in myTopo.switch:
-        _setPktLoss(StatsHandler.getStats(PORT,myTopo.switch[sw].dpid),myTopo.switch[sw].dpid)
-
+        st = StatsHandler.getStats(PORT,myTopo.switch[sw].dpid)
+        _setPktLoss( st , myTopo.switch[sw].dpid )
+        _setAvgPktSize(st , myTopo.switch[sw].dpid )
+        _setTraffic(StatsHandler.getStats(FLOW,myTopo.switch[sw].dpid),myTopo.switch[sw].dpid)
 def _setPktLoss(stat,dpid):
     """
     From each dpid gets the number of packets transmitted and how many of them were
@@ -148,22 +155,60 @@ def _setPktLoss(stat,dpid):
         except:
             pass;
 
-def _setLinkLoad(stat,dpid):
-    """
-    consider the load as how much te node queue is filled.
-    more it's filled, worse is the weight
-    """
-    if stat is None: return #no stats available
+# def _setLinkLoad(stat,dpid):
+#     """
+#     consider the load as how much te node queue is filled.
+#     more it's filled, worse is the weight
+#     """
+#     if stat is None: return #no stats available
+#
+#     for portN,queue in enumerate(stats):
+#          dpid2=myTopo.switch[dpid].port_dpid[portN+1]
+#          mytopo.link_load(dpid, dpid2, queue["txE"]) # if the queue is full, packets will be dropped
 
-    for portN,queue in enumerate(stats):
-        dpid2=myTopo.switch[dpid].port_dpid[portN+1]
-        mytopo.link_load(dpid, dpid2, queue["txE"]) # if the queue is full, packets will be dropped
+
+def  _setAvgPktSize(stat,dpid):
+    if stat is None: return
+    for port in stat:
+        #check if it's connected to an host
+        #log.debug("*** portN: %d",port["Pnum"])
+        if not port["Pnum"] in myTopo.switch[dpid].port_dpid.keys():
+            continue # this port number doesn't exist in the switch
+        if isinstance(myTopo.switch[dpid].port_dpid[port["Pnum"]] , IPAddr ):
+            #if so, calculate the average packet size. if is smaller than a threshold
+            #the node is in gaming mode
+            avgPktS=port["rxB"]/port["rxPkts"]
+            if(avgPktS<GAMING_THRES): #byte for packet
+                log.debug("on dpid %s there's an host who is gaming. pktSize is %.3f",dpid_to_str(dpid),avgPktS)
+                myTopo.switch[dpid].host_gaming[port["Pnum"]] = True
+            else:
+                myTopo.switch[dpid].host_gaming[port["Pnum"]] = False
+
+
+def _setTraffic(flow_stat,dpid):
+    #from flow stat, I can see if the node is making a lot of traffic
+    if flow_stat is None: return # no stat available
+    avgTrafPort=0
+    for table in flow_stat: # fill the throughput of a rule for that port
+        if table["actions"]>10000:
+            continue
+        log.debug("*** p: %i bc: %i  ts: %i",table["actions"],table["byteCount"],table["Tsecond"])
+        avgTrafPort += 8*10^9*table["byteCount"]/table["Tnanos"] # need a table for each rule
+        log.debug("average pkt size %.4f",avgTrafPort)
+    #for port,avg in avgTrafPort:
+
+        dpid2=myTopo.switch[dpid].port_dpid[table["actions"]]
+    #set the traffic load [0;1] 0= no traffic. 1= link is full
+        utilization = avgTrafPort/myTopo.switch[dpid].port_capacity[1]
+        log.debug("Link utilization is %.4f",utilization)
+        myTopo.link_capacity(dpid, dpid2, utilization)
+
 
 
 def launch():
     core.openflow.addListenerByName("FlowStatsReceived", _handle_flow_stats)
     core.openflow.addListenerByName("SwitchDescReceived", _handle_desc_stats)
-    core.openflow.addListenerByName("QueueStatsReceived", _handle_queue_stats)
+    #core.openflow.addListenerByName("QueueStatsReceived", _handle_queue_stats)
     core.openflow.addListenerByName("PortStatsReceived", _handle_port_stats)
     core.openflow.addListenerByName("TableStatsReceived", _handle_table_stats)
     # core.openflow.addListenerByName("AggregateStatsReceived", _handle_aggregate_stats)
@@ -190,21 +235,22 @@ def req_stats(dpid, type=DESC_STATS, port=1, tab=1):
     """
 
     con=core.openflow.getConnection(dpid)
-    if con is None: return; #switch disconnected
-    if type is None: #default do the aggregate
-        con.send(of.ofp_stats_request(body=of.ofp_aggregate_stats_request()))
-        return
-    if ((type & DESC_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_desc_stats_request()))
-    if ((type & FLOW_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_flow_stats_request()))
-    if ((type & TABLE_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_table_stats_request()))#table=tab)))
-    if ((type & PORT_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_port_stats_request()))#port = port)))
-    if ((type & QUEUE_STATS) != 0) :
-        con.send(of.ofp_stats_request(body=of.ofp_queue_stats_request()))#port=port)))
-
+    try:
+        if type is None: #default do the aggregate
+            con.send(of.ofp_stats_request(body=of.ofp_aggregate_stats_request()))
+            return
+        if ((type & DESC_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_desc_stats_request()))
+        if ((type & FLOW_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_flow_stats_request()))
+        if ((type & TABLE_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_table_stats_request()))#table=tab)))
+        if ((type & PORT_STATS) != 0) :
+            con.send(of.ofp_stats_request(body=of.ofp_port_stats_request()))#port = port)))
+        #if ((type & QUEUE_STATS) != 0) :
+            #con.send(of.ofp_stats_request(body=of.ofp_queue_stats_request()))#port=port)))
+    except:
+        log.warning("Cannot send stats request. maybe the switch just disconnected")
 def _handle_flow_stats(event):
     #stat_flow = event.stats
     flow_dict=[]
@@ -222,12 +268,13 @@ def _handle_flow_stats(event):
         flow_dict[i]["pktCount"] = rule.packet_count
         flow_dict[i]["byteCount"] = rule.byte_count
         flow_dict[i]["actions"] = []
-        # for j,act in enumerate(rule.actions):
-        #     flow_dict[i-1]["actions"][j-1] = {}
-        #     flow_dict[i-1]["actions"][j-1][""] =
+        for j,act in enumerate(rule.actions):
+            flow_dict[i-1]["actions"] = act.port
+        StatsHandler.saveStats(FLOW, event.dpid, flow_dict)
+            #flow_dict[i-1]["actions"][j-1][""] =act[]
     # print ("FLOW_STATS")
     # print(flow_dict)
-    StatsHandler.saveStats(FLOW, event.dpid, flow_dict)
+
 
     #print(stat_flow)
     #return None #todo

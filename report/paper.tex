@@ -1,0 +1,214 @@
+\documentclass[conference,10pt]{IEEEtran}
+%\documentclass[conference,draft,onecolumn]{IEEEtran}
+% useful packages, copy and paste from diff sources
+
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{cite,url,color} % Citation numbers being automatically sorted and properly "compressed/ranged".
+\usepackage{graphics,amsfonts}
+\usepackage{epstopdf}
+\usepackage[pdftex]{graphicx}
+\usepackage[cmex10]{amsmath}
+% Also, note that the amsmath package sets \interdisplaylinepenalty to 10000
+% thus preventing page breaks from occurring within multiline equations. Use:
+\interdisplaylinepenalty=2500
+% after loading amsmath to restore such page breaks as IEEEtran.cls normally does.
+\usepackage[utf8]{inputenc}
+% Useful for displaying quotations
+%\usepackage{csquotes}
+% Compact lists
+%\let\labelindent\relax
+\usepackage{enumitem}
+
+%tikz figures
+\usepackage{tikz}
+\usetikzlibrary{automata,positioning,chains,shapes,arrows}
+\usepackage{pgfplots}
+\usetikzlibrary{plotmarks}
+\newlength\fheight
+\newlength\fwidth
+\pgfplotsset{compat=newest}
+\pgfplotsset{plot coordinates/math parser=false}
+
+\usepackage{array}
+% http://www.ctan.org/tex-archive/macros/latex/required/tools/
+%\usepackage{mdwmath}
+%\usepackage{mdwtab}
+%mdwtab.sty	-- A complete ground-up rewrite of LaTeX's `tabular' and  `array' environments.  Has lots of advantages over
+%		   the standard version, and over the version in `array.sty'.
+% *** SUBFIGURE PACKAGES ***
+%\usepackage[tight,footnotesize]{subfigure}
+\usepackage{subfig}
+
+\usepackage[top=1.5cm, bottom=2cm, right=1.6cm,left=1.6cm]{geometry}
+\usepackage{indentfirst}
+
+\usepackage{times}
+% make sections titles smaller to save space
+%\usepackage{sectsty}
+%\sectionfont{\large}
+% enable the use of 'compactitem', a smaller 'itemize'
+%\usepackage{paralist}
+
+% MP
+% to split equations using dmath env
+\usepackage{breqn}
+% nice rules in tables
+\usepackage{booktabs}
+
+%\setlength\parindent{0pt}
+\linespread{1}
+
+% MC
+\newcommand{\MC}[1]{\textit{\color{red}MC says: #1}}
+\newcommand{\AZ}[1]{\textit{\color{blue}AZ says: #1}}
+\newcommand{\MP}[1]{\textit{\color{green}MP says: #1}}
+
+\usepackage{placeins}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Quality of Service with Software Defined Network.}
+
+\author{\IEEEauthorblockN{Andrea Pittaro, Matteo Maso }
+\IEEEauthorblockA{Department of Information Engineering, University of Padova -- Via Gradenigo, 6/b, 35131 Padova, Italy\\Email: {\tt\{pittaroa,masomatt\}@dei.unipd.it}
+}}
+
+\maketitle
+
+\begin{abstract}
+In this paper we present an application of the Software Defined Networks, focusing on the integration of the actual network with the SDN one.
+We will show how it's possible to implement a QoS mechanism to keep the network up and to grant the users the possibility of using it outside
+a laboratory.
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}\label{sec:intro}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The \textit{\textbf{SDN}, Software Defined Network} is a new approach to create a network of computer and networks, which is based on the
+most famous OpenFlow protocol. The key concepts of this type of networks are the hierarchy, the flow control and the statistics.
+The hierarchy allows a network administrator to set up a controller which will choose how to make the network evolve setting up
+how the routing will switch the traffic and doing so, how the single switch will behave.
+The flow control is done by the controller that, running the algorithm the network administrator created, choose the path for a
+type of traffic that occurs between a source and a destinaion host.
+The most important and interesting thing about those type of networks is the statistics: every switching unit collects data from its
+interfaces (e.g. the number of packets going in or out through a specific port or interface). This allow the controller to instantly
+how the network is evolving and, if necessary, switch a traffic from congestioned links to other that, in that moment, are almost fully loaded.
+Exploiting the statistic capabilities is the key to manage wisely a network and, since there aren't many papers about these potentialities,
+we decided to focus on that. In this paper we will show how we handled the contemporary traffic between multiple host, both inside SDN network
+nd between the SDN one and the external internet. Starting from traffic analysis and going through the SDN state of the art, we implemented some function
+to exploit better the SDN POX controller and we reach the end of this paper showing how we found three different types of traffic and
+for each one, we provided different metrics and different path to optimize the load. We realized the controller using POX, a python-based controller
+and we tested it with the switches that were provided us in the Communication Networks Lab at DEI.
+\subsection{Known Limitations}
+SDN networks are known to be underperforming with low traffic, which means that if nodes tries to connect with each other
+to exchange little traffic, the network will have a higher delay and will perform worst than a
+traditional network. We tried to reduce this underperformance with the usage of the wildcards:
+Every rule needs at least the source ip or the destination ip. If one of them is in a network
+(e.g. the internet traffic is in the network 0.0.0.0/0 excluded 192.168.10.0/24 ),
+we can redirect all the traffic from an internal host to the internet with a predefined
+path. This means that only one PacketIn will be sent to the controller if a host is surfing the network.
+
+Another limitation is the no default routing from a source to a destination: when an host
+is plugged to a network of SDN switches, it won't know the destinatio. The only way it can
+discover the host is by flooding the network with that packet, but this makes each switch raise a PacketIn message to the controller
+slowing down the startup of the connection. This thing doesn't happen with traditional routing, because each router knows
+the network disposition, but doesn't know each host how much traffic is doing. For that the administrator need to put a firewall.
+The last one isn't needed, as the controller can set a switch to drop all the packets from/to a destination.
+
+\subsection{Openflow 1.0 messages}
+Openflow defines a number of messages between a controller and a switch. Now there will be presented some messages we exploited:
+\begin{itemize}
+	\item[Hello] This message is sent both from the controller and the switch who is looking for a controller after it
+	is turned on. If the switch sent the message, the controller, after receiving it, will send the FeatureReq packet to that switch.
+	\item[FeatureReq] this is the message that the controller sends to a switch to know its abilities. The switch
+	respond with a FeatureRes and when this last message reaches the pox controller, the ConnectionUp event is raised.
+	With the featureRes the controller will know how many ports a switch has and their properties (e.g. if they are connected, link speed,...), the flow table capabilities and the supported statistics.
+	\item[PortStatus] this message is sent from a switch to the controller, to notify that some ports has changed their status.
+		It's useful to check if a port has someone connected
+	\item[StatsReq] The controller will send this message to request the statistics. The payload of the message contains the type of statistic the controller want to know.
+		The switch then will answer with the Stats reply, if it supports that type of stat. It will send a Bad_Request message if not.
+		\item[PacketIn] This message is sent from the switch to the controller whenever a packet arrives and it doesn't match
+		any rule. The controller can decide to ignore that type of message, insert this message in a PacketOut message, or set
+		a flow rule for packets like this using a FlowMod.
+		\item[PacketOut] This message is sent from the controller to forward a packet, which is the payload of the PacketOut message, to some
+		port(s).
+		\item[FlowMod] This message set, delete or modify a rule inside a switch. Is the message that allows routing.
+\end{itemize}
+
+\begin{itemize}
+	\item What are we talking about: description of the addressed problem. - done
+\item Motivation: why the problem is important. done
+\item Novelty: how you contribute to advance the state of the art. done
+\item Results: summary of the main findings  done
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Related Work}\label{sec:sota}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+A good introduction about the SDN can be the  "Simulation in an SDN network scenario using the
+POX Controller" where has been presented the SDN environment and the mininet simulation
+tool that creates a topology where to simulate the switches, the traffic between hosts and
+allow the controller to communicate with the switches. The work presented in
+"Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad [put cit]
+has been implemented to improve the controller speed and efficiency as it make it more reactive.
+The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found
+in the paper called "Getting traffic statistics from network devices in an
+SDN environment using OpenFlow" by D.J. Hamad & others. [ put note here]
+For traffic analysis we haven't found any paper describing the characteristics of
+some types of flows, so we used our PCs to sniff the traffic. Traffic analysis will be discussed in section \ref{sec:symo}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{System Model}\label{sec:symo}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The System model is a description of your operating assumptions with related motivation and justification
+
+
+We developed a controller that can handle a mesh network, which has loops, that avoid
+the traffic flooding. The controller stores the switch and the connection between them;
+knows which hosts are connected to each switch port, with the hypothesys that only one
+host is connected at each port, unless the port is the one connected to the internet.
+With the use of the statistics, the controller get the status of the network and, if necessary,
+tries to adjust the traffic and put in the link with the higher path loss the torrent traffic,
+make the connection between two gaming host the one with less delay and tries to redistribute all the traffic in a way
+such that all the nodes have an average throughput as lowest as possible.
+
+\subsection{Traffic analysis}
+We used laptop connected via
+GigabitEthernet interface and Ethernet cable cat.5a to receive the traffic from the destination host.
+Our laptop has been connected via Wi-Fi to our access point via protocol 802.11n.
+No other traffic sources were active during the testing, so the router was handling only
+the traffic from laptop when sniffing traffic. The connection used was an ADSL2+ via copper.
+We did 3 type of traffic analysis: Gaming traffic, Skype® and torrent traffic. We analyzed
+#Mb for the gaming traffic, #Mb for the VoIP traffic and 3GB for the torrent traffic.
+The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP)
+
+The traffic analysis of the torrent protocol shows that the average packet size is the MTU
+(i.e. 1500bytes) and the protocol tryies to exploit all the channel capabilities. The traffic
+is made via UDP packets with the port range in the ephimeral ports (2000_- 65535).
+Moreover, the node is linked to a lot of IPs with multiple connection: this means that
+if someone wants to find a p2p traffic, it can look to the statistics and see if the traffic is loading all the channel,
+to how many IPs, an host is connected to and if it uses UDP.
+For the VoIP we saw that the protocol uses UDP and the traffic, after a transition time, goes only between two hosts.
+The average packet size is the MTU and the protocol tryies to exploit all the channel for a better QoE.
+On another test, we tried the VoIP while a download was ongoing, and we saw that the quality
+decreased to allow communication. The traffic is between the UDP port 80 ##TODO## TOCHECK ##
+
+The last traffic analysis we made was with a DOTA[explain what it is] web match.
+We saw that for that type of gaming session, the packet size is about # bytes and involves both TCP and UDP ports.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}\label{sec:res}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+The Results section contains a selection of the most relevant results with the explanation of their meaning. Please, not that you do NOT have to describe the shape of the curves that can be seen in the figures, but the reasons WHY such curves have that shape!
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusions}\label{sec:conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
+
+\end{document}
