@@ -152,7 +152,7 @@ def _setPktLoss(stat,dpid):
     for i,PER in enumerate(pErrRate):
         try: #there isn't a link yet
             dpid2=myTopo.switch[dpid].port_dpid[i+1] # get the dpid connected to that port
-            myTopo.link_pathloss(dpid,dpid2,PER) # Update the packet error rate
+            myTopo.link_pck_err(dpid,dpid2,PER) # Update the packet error rate
         except:
             pass;
 

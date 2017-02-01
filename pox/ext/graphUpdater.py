@@ -11,6 +11,7 @@ def checkChanges():
                 newPath = nx.dijkstra_path(get_gf(DELAY_OPT), source=h.ip, target=dstH.ip, weight='weight')
                 if len(oldPath)!= len(newPath):
                     change_path(oldPath,newPath,topo.TCP)
+                    change_path(oldPath,newPath,topo.UDP)
                     h.addConnection(dstH,newPath)
                 else:
                     for i in range (1,len(oldPath)):
@@ -18,6 +19,7 @@ def checkChanges():
                             continue
                         else:
                             change_path(oldPath,newPath,topo.TCP)
+                            change_path(oldPath,newPath,topo.UDP)
                             h.addConnection(dstH,newPath)
         elif h.traffic:
             for dstH,oldPath in h.connectedTo:
@@ -35,7 +37,7 @@ def checkChanges():
 
         else: # default rule
             for dstH,oldPath in h.connectedTo:
-                newPath = nx.dijkstra_path(get_gf(DEFAULT_OPT), source=h.ip, target=dstH.ip, weight='weight')
+                newPath = nx.dijkstra_path(get_gf(PCK_ERROR_MIN_OPT), source=h.ip, target=dstH.ip, weight='weight')
                 if len(oldPath)!= len(newPath):
                     change_path(oldPath,newPath,topo.BOTH)
                     h.addConnection(dstH,newPath)
