@@ -35,7 +35,7 @@ import ipaddress as IP
 import multiprocessing #multiprocess
 
 import my_topo_SDN as topo #new class
-
+import graphUpdater as gu
 log = core.getLogger()
 
 # SDN_network = "10.0.0.0/24"
@@ -100,8 +100,8 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             topo.add_link(event.dpid,port.port_no,topo.hosts[0].ip,port.port_no,isHost=True)
 
         #default rules
-        if SDN_network != "": # I set the default network
-            topo.add_default_rules(event.connection.dpid, SDN_network)
+        # if SDN_network != "": # I set the default network
+        #     topo.add_default_rules(event.connection.dpid, SDN_network)
 
 
     #verificare che sua uno switch openflow
@@ -209,7 +209,7 @@ def _handle_ip_packet(event):
         """ pacchetti di controllo """
         #non esegue nulla in quanto se ne occupa network_performance
         pass
-    elif (ip_src.in_network(SDN_network):#, netmask=SDN_NETMASK)):
+    elif (ip_src.in_network(SDN_network)):#, netmask=SDN_NETMASK)):
         """ sorgente e' nella sotto rete SDN """
         #verifico se gia' presente nel grafo
         #log.debug("sorgente nella rete SDN")
@@ -278,7 +278,7 @@ def launch(__INSTANCE__=None, **kw):
                 topo.hosts.append(h) # add the host as the first one
                 # print("added ext host" )
                 log.info("added the external host and ready for finding the switch/port to which forward all external packets")
-        elif(k.find "net")>-1:
+        elif k.find("net")>-1 :
             log.debug("parsing network address")
             if len(v) >=9 and len(v)<=18 : # "192.168.240.240/24" is the net address form
                 n = v.split('/') # divide the cidr notation
@@ -298,4 +298,4 @@ def launch(__INSTANCE__=None, **kw):
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
     Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
-    Timer(5, _checkChanges, recurring = True) # change the graph if something happened
+    Timer(5, gu.checkChanges, recurring = True) # change the graph if something happened

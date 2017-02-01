@@ -193,7 +193,10 @@ def get_path(ip_int, ip_ext, option):
     return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_ext, weight='weight')
 
 def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
-    newPath=get_path(ip_int,hosts[0].ip,option):
+    if isDpid:
+        #TODO dpid to internet
+        log.debug("")
+    newPath=get_path(ip_int,hosts[0].ip,option)
     h = [host.ip == ip_int for host in hosts ]
     oldPath;
     if option == PCK_ERROR_OPT:
@@ -207,7 +210,7 @@ def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
                 msg.match.nw_dst = IPAddr(str(ip_dst))
                 msg.match.nw_proto = 17 # UDP
                 msg.match.dl_type = 0x800 #ip
-                pt_next_hop = switch[sw_list[i]].dpid_port[sw_list[i+1]]
+                pt_next_hop = switch[sw_list[i]].dpid_port[sw_list[i+1]] #TODO
                 msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
                 core.openflow.sendToDPID(sw_list[i], msg) #switch i-esimo
             #the reverse
@@ -218,7 +221,7 @@ def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
                 msg.match.nw_dst = IPAddr(str(ip_src))
                 msg.match.dl_type = 0x800 #ip
                 msg.match.nw_proto = 17 #UDP
-                pt_pre_hop = switch[sw_list[i]].dpid_port[sw_list[i-1]]
+                pt_pre_hop = switch[sw_list[i]].dpid_port[sw_list[i-1]] #TODO
                 msg.actions.append(of.ofp_action_output(port = pt_pre_hop ))
                 core.openflow.sendToDPID(sw_list[i], msg) #switch i-esimo
             h.addConnection(hosts[0],path,UDP)
@@ -267,7 +270,7 @@ def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
                                 pt_next_hope = switch[newPath[i]].dpid_port[newPath[i+1]]
                                 msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
                                 core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
-                            h.addConnection(host[0],newPath,UDP)
+                            h.addConnection(ip_ext,newPath,UDP)
                             return
                     else:
                         msg = of.ofp_flow_mod()
@@ -355,7 +358,7 @@ def add_default_rules(dpid, net = None):
     # the default rules: if it's in the network, flood. otherwise go through the gateway
     #to reach the internet
     if net is not None:
-        _drop_private_IPs(net) # drop all the connections through private IPs that are not in the network
+        #_drop_private_IPs(net) # drop all the connections through private IPs that are not in the network
                                 # and send PacketIn to controller
         # flood internal network
         msg = of.ofp_flow_mod()
@@ -380,7 +383,7 @@ def add_default_rules(dpid, net = None):
             core.openflow.sendToDPID(dpid, msg)
         #see if the switch for the internet has been found and this dpid is not connected to the router
         elif host[0].mac == EthAddr("ff:ff:ff:ff:ff:ff"):
-            add_path_to_gw(dpid,host[0].ip,DEFAULT_OPT,isDpid=True) # send also the PacketIn
+            add_path_throwgh_gw(dpid,host[0].ip,DEFAULT_OPT,isDpid=True) # send also the PacketIn
 
 
 
@@ -469,6 +472,8 @@ class Host():
     def addConnection(host,path=None, t_type=TRANSP_BOTH):
         #update timer if ip exist
         if not isinstance(host,Host):
+            log.debug("TODO")
+            #dsth = [h in hosts if h.ip == host]
         if(t_type == TRANSP_BOTH):
             if path is not None: # add both traffic
                 log.debug("adding both transport connection to the host destination")
@@ -480,11 +485,12 @@ class Host():
         elif t_type == TCP:
             if path is not None: # add both traffic
                 log.debug("adding TCP path to the host destination")
-            self.lastChange = datetime.datetime.now()
-            self.connectedToTCP[host] = (datetime.datetime.now(),path)
             else:
                 log.debug("adding host to the connected one")
-        elif t_type == UDP
+            self.lastChange = datetime.datetime.now()
+            self.connectedToTCP[host] = (datetime.datetime.now(),path)
+
+        elif t_type == UDP:
             if path is not None: # add both traffic
                 log.debug("adding UDP path to the host destination")
             else:
@@ -502,7 +508,7 @@ class Host():
         otherwise return False"""
         if isinstance(ip,IPAddr):
             for host,value in self.connectedToUDP:
-                if ip == host.ip and not t_type == TCP: # è un ip e sono in UDP o entrambe
+                if ip == host.ip and not t_type == TCP: # e' un ip e sono in UDP o entrambe
                     return value
             for host,value in self.connectedToTCP:
                 if ip == host.ip and not t_type == UDP:
@@ -511,7 +517,7 @@ class Host():
 
         elif isinstance(ip,Host):
             for host,value in self.connectedToUDP:
-                if ip.ip == host.ip and not t_type == TCP: # è un ip e sono in UDP o entrambe
+                if ip.ip == host.ip and not t_type == TCP: # e' un ip e sono in UDP o entrambe
                     return value
             for host,value in self.connectedToTCP:
                 if ip.ip == host.ip and not t_type == UDP:
