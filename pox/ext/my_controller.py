@@ -71,17 +71,21 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
         if(port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_HD"] or
                 port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_FD"]):
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10; #TODO constants
+            topo.capacity_gf(event.dpid,topo.switch[event.dpid].port_dpid[port.port_no],10)
             log.info("port %i is a 10Mbps",port.port_no)
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_HD"] or
             port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_FD"]):
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 100; #TODO constants
+            topo.capacity_gf(event.dpid,topo.switch[event.dpid].port_dpid[port.port_no],100)
             log.info("port %i is a 100Mbps",port.port_no)
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_HD"] or
             port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_FD"]):
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 1000; #TODO constants
+            topo.capacity_gf(event.dpid,topo.switch[event.dpid].port_dpid[port.port_no],1000)
             log.info("port %i is a 1Gbps",port.port_no)
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_10GB_FD"]):
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10000; #TODO constants
+            topo.capacity_gf(event.dpid,topo.switch[event.dpid].port_dpid[port.port_no],10000)
             log.info("port %i is a 10Gbps",port.port_no)
 
         #Find the port where is connected the standard router
@@ -168,87 +172,118 @@ def _handle_ip_packet(event):
 
     ip_src = IPAddr(ip_pck.srcip) #ip sorgente
     ip_dst = IPAddr(ip_pck.dstip) #ip destinatario
-    alreadySrc = False
-    alreadyDst=False
-    for hst in topo.hosts:
-        if ip_src == hst.ip:
-            alreadySrc=True
-            log.debug("src host already found.")
-            if hst.isConnected(ip_dst,Host.TRANSP_BOTH):
-                log.debug("connection found before")
-                alreadyDst =True
 
+    if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
+        return;
 
-    if not alreadySrc and not (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
-        #add host to host list
-        h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
-        h.addConnection(ip_dst)
-        topo.hosts.append(h)
-    elif not alreadyDst and not ip_dst.inNetwork(SDN_network):#, netmask=SDN_NETMASK)):
+    srcH = None
+    dstH = None
+    # alreadySrc = False
+    # alreadyDst=False
+    #
+    if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
+        if ip_dst.inNetwork(SDN_network) and topo.is_logged(ip_dst):
+            topo.add_path(ip_src,ip_dst,LOAD_OPT)
+        elif not ip_dst.inNetwork(SDN_network):
+            topo.add_path_through_gw(ip_src,ip_dst,LOAD_OPT)
+    else:
+        topo.add_host(event.connection.dpid, src_mac, event.port, ip_src)
+        for h in hosts:
+            if(h.ip == ip.src):
+                h.addConnection(ip_dst)
+        log.debug("\n %s aggiunto nella rete", ip_src)
+    #
+    # for hst in topo.hosts:
+    #     if ip_src == hst.ip:
+    #         alreadySrc=True
+    #         log.debug("src host already found.")
+    #         srcH = hst
+    #         if hst.isConnected(ip_dst,Host.TRANSP_BOTH):
+    #             log.debug("connection found before")
+    #     if ip_dst== hst.ip:
+    #         dstH = hst
+    #         alreadyDst = True
+    #
+    #
+    #
+    # if not alreadySrc and not alreadyDst and ip_src.inNetwork(SDN_network):
+    #     #add host to host list
+    #     h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
+    #     topo.add_host(event.connection.dpid,src_mac,event.port,ip_src) # add ip to graph
+    #     h.addConnection(ip_dst)
+    #     topo.hosts.append(h)
+    #     alreadySrc =True # now I know the SRC
+    # if not alreadySrc and alreadyDst: # internal
+    #     h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
+    #     topo.add_host(event.connection.dpid,src_mac,event.port,ip_src) # add ip to graph
+    #     topo.add_path(ip_src,ip_dst,LOAD_OPT)
+    #     h.addConnection()
+    if alreadySrc and not alreadyDst and not ip_dst.inNetwork(SDN_network):# def rule 4
         for h in topo.hosts:
             if h.ip == ip_src:
                 if h.isGaming:
                     log.debug("Adding link with the lowest delay path")
-                    path = topo.get_path(topo.get_gf(topo.DELAY_OPT),h.ip, ip_dst)
-                    h.addConnection(ip_dst,path)
+                    # path = topo.get_path(topo.get_gf(topo.DELAY_OPT),h.ip, host[0].ip)
                     topo.add_path_through_gw(h.ip, ip_dst, topo.DELAY_OPT)
+
                 elif h.traffic:
                     log.debug("Adding link with the worst graph")
-                    path = topo.get_path(topo.get_gf(topo.PCK_ERROR_OPT))
-                    h.addConnection(ip_dst,path)
-                    topo.add_path_through_gw(h.ip, ip_dst, topo.PCK_ERROR_OPT)
+                    # path = topo.get_path(topo.get_gf(topo.PCK_ERROR_MAX_OPT))
+                    # h.addConnection(ip_dst,path)
+                    topo.add_path_through_gw(h.ip, ip_dst, topo.PCK_ERROR_MAX_OPT)
                 else:
-                    path = topo.get_path(topo.get_gf(topo.DEFAULT_OPT))
-                    topo.add_path_through_gw(ip_src, ip_dst, DEFAULT_OPT)
-                    h.addConnection(ip_dst,path)
+                    # path = topo.get_path(topo.get_gf(topo.LOAD_OPT))
+                    topo.add_path_through_gw(ip_src, ip_dst, LOAD_OPT)
+                    #h.addConnection(ip_dst,path)
 
 
 
 
-    if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
-        """ pacchetti di controllo """
-        #non esegue nulla in quanto se ne occupa network_performance
-        pass
-    elif (ip_src.in_network(SDN_network)):#, netmask=SDN_NETMASK)):
-        """ sorgente e' nella sotto rete SDN """
-        #verifico se gia' presente nel grafo
-        #log.debug("sorgente nella rete SDN")
-        #log.debug("is_src %s, il_log: %s", ip_src, topo.is_logged(ip_src) )
-        if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
-            pass
-        else:
-            topo.add_host(event.connection.dpid, src_mac, event.port, ip_src)
-            log.debug("\n %s aggiunto nella rete", ip_src)
-
-        if (ip_dst.inNetwork(SDN_network, netmask=SDN_NETMASK)):
-        #log.debug("sorgente nella rete SDN 3")
-            """ destinatario nella sotto rete SDN """
-            if topo.is_logged(ip_dst):
-                #destinatario presente posso farli connettere
-                if topo.ip_connected(ip_src, ip_dst):
-                    #installa le rotte di default con la minimum path
-                    #scegliere la path in base a qualche metrica particolare
-                    topo.add_path(ip_src, ip_dst, DEFAULT_OPT)
-                else:
-                    log.debug("Some errors occur in the graph path")
-            else:
-                #destinatario interno non ancora loggato, potrei cercarlo ma per ora no
-                log.debug(" da src interno Ip_dst interno ma non ancora loggato: %s", ip_dst)
-
-        else:
-            """ destinatario fuori dalla sottorete SDN """
-            #lo indirizzo nel gateway di default
-            topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
-    else:
-        """ sorgente del pacchetto proveniente dall'esterno della sottorete SDN """
-        if topo.is_logged(ip_dst):
-            #destinatario presente posso farli connettere
-            log.debug("IP_src %s", ip_src)
-            topo.add_host(event.connection.dpid, src_mac, event.port, ip_pck.srcip)
-            topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
-        else:
-            #destinatario interno non ancora loggato, potrei cercarlo ma per ora no
-            log.debug("da src esterno Ip_dst interno ma non ancora loggato: %s", ip_dst)
+    #
+    # if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
+    #     """ pacchetti di controllo """
+    #     #non esegue nulla in quanto se ne occupa network_performance
+    #     pass
+    # elif (ip_src.in_network(SDN_network)):#, netmask=SDN_NETMASK)):
+    #     """ sorgente e' nella sotto rete SDN """
+    #     #verifico se gia' presente nel grafo
+    #     #log.debug("sorgente nella rete SDN")
+    #     #log.debug("is_src %s, il_log: %s", ip_src, topo.is_logged(ip_src) )
+    #     if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
+    #         pass
+    #     else:
+    #         topo.add_host(event.connection.dpid, src_mac, event.port, ip_src)
+    #         log.debug("\n %s aggiunto nella rete", ip_src)
+    #
+    #     if (ip_dst.inNetwork(SDN_network, netmask=SDN_NETMASK)):
+    #     #log.debug("sorgente nella rete SDN 3")
+    #         """ destinatario nella sotto rete SDN """
+    #         if topo.is_logged(ip_dst):
+    #             #destinatario presente posso farli connettere
+    #             if topo.ip_connected(ip_src, ip_dst):
+    #                 #installa le rotte di default con la minimum path
+    #                 #scegliere la path in base a qualche metrica particolare
+    #                 topo.add_path(ip_src, ip_dst, DEFAULT_OPT)
+    #             else:
+    #                 log.debug("Some errors occur in the graph path")
+    #         else:
+    #             #destinatario interno non ancora loggato, potrei cercarlo ma per ora no
+    #             log.debug(" da src interno Ip_dst interno ma non ancora loggato: %s", ip_dst)
+    #
+    #     else:
+    #         """ destinatario fuori dalla sottorete SDN """
+    #         #lo indirizzo nel gateway di default
+    #         topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
+    # else:
+    #     """ sorgente del pacchetto proveniente dall'esterno della sottorete SDN """
+    #     if topo.is_logged(ip_dst):
+    #         #destinatario presente posso farli connettere
+    #         log.debug("IP_src %s", ip_src)
+    #         topo.add_host(event.connection.dpid, src_mac, event.port, ip_pck.srcip)
+    #         topo.add_path_to_gw(ip_src, ip_dst, DEFAULT_OPT)
+    #     else:
+    #         #destinatario interno non ancora loggato, potrei cercarlo ma per ora no
+    #         log.debug("da src esterno Ip_dst interno ma non ancora loggato: %s", ip_dst)
 
 def _show_topo():
     """
@@ -297,5 +332,5 @@ def launch(__INSTANCE__=None, **kw):
     core.openflow.addListenerByName("PortStatus",_handle_port_status)
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
-    Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
+#    Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
     Timer(5, gu.checkChanges, recurring = True) # change the graph if something happened
