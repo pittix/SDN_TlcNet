@@ -10,7 +10,8 @@ log = core.getLogger()
 # from enum import Enum
 # from graphUpdater import GraphUpdater
 UPD_GRAPH = 10 # every 10 seconds update the graph weight
-GAMING_THRES = 10 #bytes per packet
+GAMING_THRES = 200 #bytes per packet
+TRAFFIC_THRES = 0.8 #
 
 dpid = list()
 DESC_STATS = 1
@@ -151,7 +152,7 @@ def _setPktLoss(stat,dpid):
     for i,PER in enumerate(pErrRate):
         try: #there isn't a link yet
             dpid2=myTopo.switch[dpid].port_dpid[i+1] # get the dpid connected to that port
-            myTopo.link_pathloss(dpid,dpid2,PER) # Update the packet error rate
+            myTopo.link_pck_err(dpid,dpid2,PER) # Update the packet error rate
         except:
             pass;
 
@@ -181,8 +182,15 @@ def  _setAvgPktSize(stat,dpid):
             if(avgPktS<GAMING_THRES): #byte for packet
                 log.debug("on dpid %s there's an host who is gaming. pktSize is %.3f",dpid_to_str(dpid),avgPktS)
                 myTopo.switch[dpid].host_gaming[port["Pnum"]] = True
+                for h in myTopo.hosts:
+                    if h.ip == myTopo.switch[dpid].port_dpid[port["Pnum"]]:
+                        h.isGaming = True
             else:
                 myTopo.switch[dpid].host_gaming[port["Pnum"]] = False
+                for h in myTopo.hosts:
+                    if h.ip == myTopo.switch[dpid].port_dpid[port["Pnum"]]:
+                        h.isGaming = False
+
 
 
 def _setTraffic(flow_stat,dpid):
@@ -201,9 +209,18 @@ def _setTraffic(flow_stat,dpid):
     #set the traffic load [0;1] 0= no traffic. 1= link is full
         utilization = avgTrafPort/myTopo.switch[dpid].port_capacity[1]
         log.debug("Link utilization is %.4f",utilization)
-        myTopo.link_capacity(dpid, dpid2, utilization)
-
-
+        myTopo.link_load(dpid, dpid2, utilization)
+        if(utilization>TRAFFIC_THRES): #byte for packet
+            log.debug("on dpid %s there's an host who is congestioning. Throughput/Capacity=%.3f",dpid_to_str(dpid),utilization)
+        myTopo.switch[dpid].host_traffic[table["actions"]] = True
+        for h in myTopo.hosts:
+            if h.ip == myTopo.switch[dpid].port_dpid[table["actions"]]:
+                h.traffic = True
+            else:
+                myTopo.switch[dpid].host_traffic[table["actions"]] = False
+                for h in myTopo.hosts:
+                    if h.ip == myTopo.switch[dpid].port_dpid[table["actions"]]:
+                        h.traffic = False
 
 def launch():
     core.openflow.addListenerByName("FlowStatsReceived", _handle_flow_stats)
