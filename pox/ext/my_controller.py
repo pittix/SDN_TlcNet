@@ -59,23 +59,25 @@ def _handle_LinkEvent(event):
     """
     l = event.link
     #if there's a link, the controller knows the link between switches
-    # for i,c in enumerate(unknown_link):
-    #     if c[0] == l.dpid1:
-    #         try:
-    #             dpid2 = switch[c[0]].port_dpid[c[1]]
-    #             topo.link_capacity(c[0],dpid2, c[2])
-    #             del unknown_link[i]# remove unknown link from the list
-    #         except:
-    #             break # doesn't have the other link yet
-    #     elif c[0] == l.dpid2:
-    #         try:
-    #             dpid = switch[c[0]].port_dpid[c[1]]
-    #             topo.link_capacity(c[0],dpid, c[2])
-    #             del unknown_link[i] # remove unknown link from the list
-    #         except:
-    #             break # doesn't have the other link yet
-    #     else:
-    #         continue
+    for i,c in enumerate(unknown_link):
+        if c[0] == l.dpid1:
+            try:
+                dpid2 = switch[c[0]].port_dpid[c[1]]
+                topo.link_capacity(c[0],dpid2, c[2])
+                topo.switch[dpid].port_capacity[c[1]] = c[2]
+                log.debug ("== ADDED CAPACITY BETWEEN %s AND %s : %i",c[0],dpid2,c[2])
+                del unknown_link[i]# remove unknown link from the list
+            except:
+                break # doesn't have the other link yet
+        elif c[0] == l.dpid2:
+            try:
+                dpid = switch[c[0]].port_dpid[c[1]]
+                topo.link_capacity(c[0],dpid, c[2])
+                del unknown_link[i] # remove unknown link from the list
+            except:
+                break # doesn't have the other link yet
+        else:
+            continue
     if event.added:
         log.debug('LinkAdd dpid1: {0} porta {1}, dpid2: {2} porta {3}'.format(l.dpid1, l.port1, l.dpid2, l.port2))
         topo.add_link(l.dpid1, l.port1, l.dpid2, l.port2)
@@ -98,6 +100,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             log.debug("port %i has capacity %i", port.port_no, topo.switch[event.connection.dpid].port_capacity[port.port_no])
             try:
                 topo.link_capacity(event.connection.dpid,topo.switch[event.connection.dpid].port_dpid[port.port_no],10)
+                topo.switch[dpid].port_capacity[c[1]] = 10
             except:
                 unknown_link.append([event.connection.dpid, port.port_no, 10])
             log.info("port %i is a 10Mbps",port.port_no)
@@ -107,6 +110,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             log.debug("port %i has capacity %i", port.port_no, topo.switch[event.connection.dpid].port_capacity[port.port_no])
             try:
                 topo.link_capacity(event.connection.dpid,topo.switch[event.connection.dpid].port_dpid[port.port_no],100)
+                topo.switch[dpid].port_capacity[c[1]] = 100
             except:
                 unknown_link.append([event.connection.dpid, port.port_no, 100])
             log.info("port %i is a 100Mbps",port.port_no)
@@ -116,6 +120,8 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             log.debug("port %i has capacity %i", port.port_no, topo.switch[event.connection.dpid].port_capacity[port.port_no])
             try:
                 topo.link_capacity(event.connection.dpid,topo.switch[event.connection.dpid].port_dpid[port.port_no],1000)
+                topo.switch[dpid].port_capacity[c[1]] = 1000
+                topo.switch[dpid].port_capacity[c[1]] = 1000
             except:
                 unknown_link.append([event.connection.dpid, port.port_no, 1000])
             log.info("port %i is a 1Gbps",port.port_no)
@@ -123,6 +129,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10000; #TODO constants
             try:
                 topo.link_capacity(event.connection.dpid,topo.switch[event.connection.dpid].port_dpid[port.port_no],10000)
+                topo.switch[dpid].port_capacity[c[1]] = 10000
             except:
                 unknown_link.append([event.connection.dpid, port.port_no, 10000])
             log.info("port %i is a 10Gbps",port.port_no)
