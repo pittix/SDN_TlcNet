@@ -9,7 +9,8 @@ def checkChanges():
         if h.isGaming: # redirect tcp through the least delay
             for i,val in enumerate(h.connectedToTCP):
                 oldPath=h.connectedToTCP[h.connectedToTCP[val]][1]
-                if isinstance(oldPath,datetime.datetime):                    continue
+                if isinstance(oldPath,datetime.datetime):
+                    continue
                 dstH=val
                 newPath = nx.dijkstra_path(get_gf(DELAY_OPT), source=h.ip, target=dstH.ip, weight='weight')
                 if len(oldPath)!= len(newPath):
@@ -24,7 +25,8 @@ def checkChanges():
                             h.addConnection(dstH,newPath)
             for i,val in enumerate(h.connectedToUDP):
                 oldPath=h.connectedToUDP[h.connectedToUDP[val]][1]
-                if isinstance(oldPath,datetime.datetime):                    continue
+                if isinstance(oldPath,datetime.datetime):
+                    continue
                 dstH=val
                 newPath = nx.dijkstra_path(get_gf(DELAY_OPT), source=h.ip, target=dstH.ip, weight='weight')
                 if len(oldPath)!= len(newPath):
@@ -42,7 +44,8 @@ def checkChanges():
             for i,val in enumerate(h.connectedToUDP):
                 oldPath=h.connectedToUDP[h.connectedToUDP[val]][1]
                 dstH=val
-                if isinstance(oldPath,datetime.datetime):                    continue
+                if isinstance(oldPath,datetime.datetime):
+                    continue
                 newPath = nx.dijkstra_path(get_gf(PCK_ERROR_MAX_OPT), source=h.ip, target=dstH.ip, weight='weight')
                 if len(oldPath)!= len(newPath):
                     change_path(oldPath,newPath,topo.UDP)
@@ -58,7 +61,8 @@ def checkChanges():
         else: # default rule
             for i,val in enumerate(h.connectedToTCP):
                 oldPath=h.connectedToTCP[h.connectedToTCP[val]][1]
-                if isinstance(oldPath,datetime.datetime):                    continue
+                if isinstance(oldPath,datetime.datetime):
+                    continue
                 dstH=val
                 newPath = nx.dijkstra_path(get_gf(PCK_ERROR_MIN_OPT), source=h.ip, target=dstH.ip, weight='weight')
                 if len(oldPath)!= len(newPath):
