@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt  #for ploting graph
 import datetime #for connection expiration in host tuples
 import random #debug
 
+
 log = core.getLogger()
 switch = {} #dizionario di switch dpid e' la chiave
 grafo = nx.Graph()          #grafo con vari attributi
@@ -120,54 +121,50 @@ def rm_switch(dpid):
     load_gf.remove_node(dpid)
     del switch[dpid] #remove the disconnected switch
 
-def save_graph():
-    # global grafo
-    # global pck_error_min_gf
-    # global pck_error_max_gf
-    # global capacity_gf
-    # global delay_gf
-    # global switch_gf
-    # global load_gf
+def save_graph(counter):
+
+# def save_graph(counter):
     pos=nx.spring_layout(grafo) # positions for all nodes
     nx.draw_networkx(grafo,pos, with_labels=True, node_size=700, width=6, font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("grafo.png")      #salva l'immagine
+
+    plt.savefig("grafo%i.png" % (counter))      #salva l'immagine
     plt.clf()                     #elimina l'immagine corrente dalla libreria
 
     edge_labels=nx.draw_networkx_edge_labels(pck_error_min_gf,pos,font_size=12)
     nx.draw_networkx(pck_error_min_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_min_gf.png")   #salva l'immagine
+    plt.savefig("pck_error_min_gf%i.png" % (counter))   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels=nx.draw_networkx_edge_labels(pck_error_max_gf,pos,font_size=12)
     nx.draw_networkx(pck_error_max_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_max_gf.png")   #salva l'immagine
+    plt.savefig("pck_error_max_gf%i.png" % (counter))   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
     nx.draw_networkx(delay_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("delay_gf.png")      #salva l'immagine
+    plt.savefig("delay_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(capacity_gf,pos,font_size=12)
     nx.draw_networkx(capacity_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("capacity_gf.png")      #salva l'immagine
+    plt.savefig("capacity_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(switch_gf,pos,font_size=12)
     nx.draw_networkx(switch_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("switch_gf.png")      #salva l'immagine
+    plt.savefig("switch_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels4=nx.draw_networkx_edge_labels(load_gf,pos,font_size=12)
     nx.draw_networkx(load_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("load_gf.png")      #salva l'immagine
+    plt.savefig("load_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
 
@@ -291,7 +288,6 @@ def get_path(ip_int, ip_dst, option):
 def add_path_through_gw(ip_int, ip_dst, option,isDpid=False):
     if isDpid:
         #TODO dpid to internet
-
         log.debug("add path through gateway")
     # newPath=get_path(ip_int,hosts[0].ip,option)
     add_path(ip_int,ip_dst, option,isExt=True)
@@ -348,7 +344,6 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                     if oldPath[i+1] == newPath[i+1]:
                         continue
                     else: # the i+1 switch is different
-
                         msg = of.ofp_flow_mod()
                         msg.command = of.OFPFC_MODIFY
                         msg.match.nw_dst = IPAddr(str(ip_dst))
@@ -578,10 +573,8 @@ class Host():
     def addConnection(self,host,path=None, t_type=TRANSP_BOTH):
         #update timer if ip exist
         if not isinstance(host,Host):
-            log.debug("TODO")
-
-            #dsth = [h in hosts if h.ip == host]
-        if(t_type == Host.TRANSP_BOTH):
+            pass #TODO
+        if(t_type == TRANSP_BOTH):
             if path is not None: # add both traffic
                 log.debug("adding both transport connection to the host destination")
             else:
@@ -596,7 +589,6 @@ class Host():
                 log.debug("adding host to the connected one")
             self.lastChange = datetime.datetime.now()
             self.connectedToTCP[host] = (datetime.datetime.now(),path)
-
         elif t_type == UDP:
             if path is not None: # add both traffic
                 log.debug("adding UDP path to the host destination")
