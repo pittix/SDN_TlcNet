@@ -103,7 +103,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             log.info("port %i is a 10Mbps",port.port_no)
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_HD"] or
             port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_FD"]):
-            topo.switch[event.connection.dpid].port_capacity[port.port_no] = 100; #TODO constants
+            topo.switch[event.connection.dpid].port_cpacity[port.port_no] = 100; #TODO constants
             log.debug("port %i has capacity %i", port.port_no, topo.switch[event.connection.dpid].port_capacity[port.port_no])
             try:
                 topo.link_capacity(event.connection.dpid,topo.switch[event.connection.dpid].port_dpid[port.port_no],100)
@@ -138,8 +138,8 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
                 if topo.switch[dpid].dpid == event.connection.dpid:
                     sw = topo.switch[dpid]
                     break
-            sw.port_dpid[port.port_no] = IPAddr("0.0.0.0",0)
-            sw.dpid_port[IPAddr("0.0.0.0",0)]=port.port_no
+            sw.port_dpid[port.port_no] = IPAddr("",0)
+            sw.dpid_port[IPAddr("192.168.10.254",24)]=port.port_no
             #probably useless
             sw.port_mac[port.port_no]=port.hw_addr
             sw.mac_port[port.hw_addr]=port.port_no
@@ -229,6 +229,11 @@ def _handle_ip_packet(event):
     #             src_mac=dst_mac
     #             dst_mac=a
 
+    if type(EXTERNAL) is tuple and event.dpid == EXTERNAL[0] and event.port == EXTERNAL[1]:
+        host[0].mac=src_mac
+        if ip_src.inNetwork(SDN_network[0],SDN_network[1]):
+            host[0].ip=ip_src
+
     for i,pkt in enumerate(recent_packets):
         if pkt[0] == ip_src and pkt[1]==ip_dst and pkt[2] == event.dpid:
             return # it's a flooded packet that reached controller
@@ -281,7 +286,7 @@ def _handle_ip_packet(event):
             log.debug ("ip src and ip dst are logged. now add_path")
             topo.add_path(ip_src,ip_dst,topo.LOAD_OPT)
         elif hasNetwork and not ip_dst.inNetwork(SDN_network):
-            topo.add_path_through_gw(ip_src,ip_dst,LOAD_OPT)
+            topo.add_path_through_gw(ip_src,ip_dst,topo.LOAD_OPT)
         else: #is in network, but I don't know where it is. Controlled flood
             recent_packets.append([ip_src,ip_dst,event.connection.dpid,event.port,datetime.datetime.now()])
             msg = of.ofp_packet_out()
@@ -295,7 +300,7 @@ def _handle_ip_packet(event):
         #     if(h.ip == ip_src):
         #         # h.addConnection(ip_dst)
         if hasNetwork and ip_dst.inNetwork(SDN_network[0],netmask=SDN_network[1]) and topo.is_logged(ip_dst):
-            log.debug ("ip src and ip dst are logged. now add_path")
+            log.debug ("added host. now  ip src and ip dst are logged. now add_path")
             topo.add_path(ip_src,ip_dst,topo.LOAD_OPT)
         elif hasNetwork and not ip_dst.inNetwork(SDN_network[0],netmask=SDN_network[1]):
             log.debug ("ip src add_path through internet")
@@ -336,7 +341,7 @@ def launch(__INSTANCE__=None, **kw):
             # print("parsing mac addr")
             log.debug("parsing mac address")
             if len(v) == 17 : # "00:11:22:33:44:55:66" is the mac address form
-                topo.Host(None,None,ipAddr=IPAddr("0.0.0.0",0),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
+                topo.Host(None,None,ipAddr=IPAddr("192.168.10.254",24),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
                 # topo.hosts.append(h) # add the host as the first one
                 # print("added ext host" )
                 hasGateway=True

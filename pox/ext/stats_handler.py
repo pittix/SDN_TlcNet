@@ -207,7 +207,7 @@ def _setTraffic(flow_stat,dpid):
 
         dpid2=myTopo.switch[dpid].port_dpid[table["actions"]]
     #set the traffic load [0;1] 0= no traffic. 1= link is full
-        utilization = avgTrafPort/myTopo.switch[dpid].port_capacity[1]
+        utilization = avgTrafPort/myTopo.switch[dpid].port_capacity[table["actions"]]
         log.debug("Link utilization is %.4f",utilization)
         myTopo.link_load(dpid, dpid2, utilization)
         if(utilization>TRAFFIC_THRES): #byte for packet

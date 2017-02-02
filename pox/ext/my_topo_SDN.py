@@ -82,19 +82,35 @@ def add_switch(dpid):
     """
     Add a switch if it wasn't already added
     """
+    # global grafo
+    # global pck_error_min_gf
+    # global pck_error_max_gf
+    # global capacity_gf
+    # global delay_gf
+    # global switch_gf
+    # global load_gf
     if switch.has_key(dpid):
         pass
     else:
         switch[dpid] = my_Switch(dpid)
         grafo.add_node(dpid)
         pck_error_min_gf.add_node(dpid)
+        pck_error_max_gf.add_node(dpid)
         delay_gf.add_node(dpid)
         capacity_gf.add_node(dpid)
         load_gf.add_node(dpid)
         switch_gf.add_node(dpid)
+
         log.debug("Add switch: %s", dpid_to_str(dpid))
         add_default_rules(dpid)
 def rm_switch(dpid):
+    # global grafo
+    # global pck_error_min_gf
+    # global pck_error_max_gf
+    # global capacity_gf
+    # global delay_gf
+    # global switch_gf
+    # global load_gf
     grafo.remove_node(dpid)
     pck_error_min_gf.remove_node(dpid)
     pck_error_max_gf.remove_node(dpid)
@@ -105,6 +121,13 @@ def rm_switch(dpid):
     del switch[dpid] #remove the disconnected switch
 
 def save_graph():
+    # global grafo
+    # global pck_error_min_gf
+    # global pck_error_max_gf
+    # global capacity_gf
+    # global delay_gf
+    # global switch_gf
+    # global load_gf
     pos=nx.spring_layout(grafo) # positions for all nodes
     nx.draw_networkx(grafo,pos, with_labels=True, node_size=700, width=6, font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
@@ -152,6 +175,13 @@ def add_link(dpid1, port1, dpid2, port2, isHost=False):
     """
     Inside add_link function, add switch and link
     """
+    # global grafo
+    # global pck_error_min_gf
+    # global pck_error_max_gf
+    # global capacity_gf
+    # global delay_gf
+    # global switch_gf
+    # global load_gf
     add_switch(dpid1)
     add_switch(dpid2)
     switch[dpid1].port_dpid[port1] = dpid2
@@ -169,6 +199,13 @@ def add_link(dpid1, port1, dpid2, port2, isHost=False):
 
 def rm_link(dpid1, port1, dpid2, port2):
     x = True
+    # global grafo
+    # global pck_error_min_gf
+    # global pck_error_max_gf
+    # global capacity_gf
+    # global delay_gf
+    # global switch_gf
+    # global load_gf
     try:
         grafo.remove_edge(dpid1, dpid2)
         pck_error_min_gf.remove_edge(dpid1, dpid2)
@@ -191,12 +228,15 @@ def link_delay(dpid1, dpid2, value):
     """
     modifica il peso del link del grafo delay_gf
     """
+    # global delay_gf
     delay_gf[dpid1][dpid2]['weight']=value
 
 def link_pck_error(dpid1, dpid2, value):
     """
     modifica il peso del link del grafo pck_error_gf
     """
+    # global pck_error_min_gf
+    # global pck_error_max_gf
     pck_error_min_gf[dpid1][dpid2]['weight']=value
     pck_error_max_gf[dpid1][dpid2]['weight']=1-value
 
@@ -204,38 +244,56 @@ def link_load(dpid1, dpid2, value):
     """
     modifica il peso del link del grafo load_gf
     """
+    # global load_gf
     load_gf[dpid1][dpid2]['weight']=value
 
 def link_capacity(dpid1, dpid2, value):
     """
     modifica il peso del link del grafo capacity_gf
     """
+    # global capacity_gf
     capacity_gf[dpid1][dpid2]['weight']=value
 
 def get_gf(option):
+    # global grafo
+    # global pck_error_min_gf
+    # global pck_error_max_gf
+    # global capacity_gf
+    # global delay_gf
+    # global switch_gf
+    # global load_gf
     if option == PCK_ERROR_MIN_OPT:
+        log.debug("packet error min graph requested")
         return pck_error_min_gf
     elif option == PCK_ERROR_MAX_OPT:
+        log.debug("packet error min graph requested")
         return pck_error_max_gf
     elif option == DELAY_OPT:
+        log.debug("packet error min graph requested")
         return delay_gf
     elif option == DEFAULT_OPT:
+        log.debug("packet error min graph requested")
+        return grafo
+    elif option == LOAD_OPT:
+        #return load_gf
+        return grafo
+    else:
         return grafo
 
 def get_path(ip_int, ip_dst, option):
+    log.debug("get_path: ip_src=%s  ip_dst=%s",ip_int,ip_dst)
+    print get_gf(option).edges()
     if option == DEFAULT_OPT:
-        return nx.dijkstra_path(grafo, source=ip_int, target=ip_dst)
+        return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_dst)
     else:
-        return nx.dijkstra_path(grafo, source=ip_int, target=ip_dst)#, weight='weight')
+        return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_dst) #, weight='weight')
 
 def add_path_through_gw(ip_int, ip_dst, option,isDpid=False):
     if isDpid:
         #TODO dpid to internet
 
-        log.debug("")
-    newPath=get_path(ip_int,hosts[0].ip,option)
-    h = [host.ip == ip_int for host in hosts ]
-    oldPath;
+        log.debug("add path through gateway")
+    # newPath=get_path(ip_int,hosts[0].ip,option)
     add_path(ip_int,ip_dst, option,isExt=True)
     #devo fare in modo di riconoscere uno switch come gateway
     #capire nella realta' come arrivano i dpid
@@ -248,7 +306,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
             h=hst
             break
     if isExt:
-        newPath=get_path(ip_int,hosts[0].ip,option)
+        newPath=get_path(ip_src,hosts[0].ip,option)
     else:
         newPath=get_path(ip_src,ip_dst,option)
 
