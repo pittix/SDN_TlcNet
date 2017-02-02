@@ -47,6 +47,9 @@ DEFAULT_OPT   = 3
 
 EXTERNAL = (None,None)
 
+counter = None
+
+
 def _handle_LinkEvent(event):
     """
     handle event ("LinkEvent") from openflow.discovery
@@ -104,7 +107,6 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
         #default rules
         if SDN_network != "": # I set the default network
             topo.add_default_rules(event.connection.dpid, SDN_network)
-
 
     #verificare che sua uno switch openflow
     log.debug("Add switch: %s", dpid_to_str(event.connection.dpid))
@@ -219,7 +221,7 @@ def _handle_ip_packet(event):
         """ pacchetti di controllo """
         #non esegue nulla in quanto se ne occupa network_performance
         return
-    elif (ip_src.in_network(SDN_network):#, netmask=SDN_NETMASK)):
+    elif (ip_src.in_network(SDN_network)): # netmask=SDN_NETMASK)):
         """ sorgente e' nella sotto rete SDN """
         #log.debug("is_src %s, il_log: %s", ip_src, topo.is_logged(ip_src) )
         if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
@@ -230,7 +232,7 @@ def _handle_ip_packet(event):
             h.addConnection(ip_dst)
             topo.hosts.append(h)
             log.debug("\n %s aggiunto nella rete", ip_src)
-    
+
         if (ip_dst.inNetwork(SDN_network, netmask=SDN_NETMASK)):
         #log.debug("sorgente nella rete SDN 3")
             """ destinatario nella sotto rete SDN """
@@ -265,7 +267,12 @@ def _show_topo():
     """
     function to show the graph on a separate process
     """
-    job_for_another_core = multiprocessing.Process(target=topo.save_graph,args=()) #chiama la funzione save_graph in un processo separato
+    global counter
+    if counter == None:
+        counter = 1
+    else:
+        counter = counter + 1
+    job_for_another_core = multiprocessing.Process(target=topo.save_graph(counter),args=()) #chiama la funzione save_graph in un processo separato
     job_for_another_core.start()
 
 
@@ -289,7 +296,7 @@ def launch(__INSTANCE__=None, **kw):
                 topo.hosts.append(h) # add the host as the first one
                 # print("added ext host" )
                 log.info("added the external host and ready for finding the switch/port to which forward all external packets")
-        elif(k.find "net")>-1:
+        elif(k.find("net"))>-1:
             log.debug("parsing network address")
             if len(v) >=9 and len(v)<=18 : # "192.168.240.240/24" is the net address form
                 n = v.split('/') # divide the cidr notation
@@ -309,4 +316,4 @@ def launch(__INSTANCE__=None, **kw):
 
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
     Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
-    Timer(5, _checkChanges, recurring = True) # change the graph if something happened
+#    Timer(5, _checkChanges, recurring = True) # change the graph if something happened

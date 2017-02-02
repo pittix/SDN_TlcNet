@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt  #for ploting graph
 import datetime #for connection expiration in host tuples
 import random #debug
 
+
 log = core.getLogger()
 switch = {} #dizionario di switch dpid e' la chiave
 grafo = nx.Graph()          #grafo con vari attributi
@@ -88,48 +89,51 @@ def rm_switch(dpid):
     load_gf.remove_node(dpid)
     del switch[dpid] #remove the disconnected switch
 
-def save_graph():
+def save_graph(counter):
+
+
     pos=nx.spring_layout(grafo) # positions for all nodes
     nx.draw_networkx(grafo,pos, with_labels=True, node_size=700, width=6, font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("grafo.png")      #salva l'immagine
+
+    plt.savefig("grafo%i.png" % (counter))      #salva l'immagine
     plt.clf()                     #elimina l'immagine corrente dalla libreria
 
     edge_labels=nx.draw_networkx_edge_labels(pck_error_min_gf,pos,font_size=12)
     nx.draw_networkx(pck_error_min_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_min_gf.png")   #salva l'immagine
+    plt.savefig("pck_error_min_gf%i.png" % (counter))   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels=nx.draw_networkx_edge_labels(pck_error_max_gf,pos,font_size=12)
     nx.draw_networkx(pck_error_max_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_max_gf.png")   #salva l'immagine
+    plt.savefig("pck_error_max_gf%i.png" % (counter))   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
 
     edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
     nx.draw_networkx(delay_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("delay_gf.png")      #salva l'immagine
+    plt.savefig("delay_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(capacity_gf,pos,font_size=12)
     nx.draw_networkx(capacity_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("capacity_gf.png")      #salva l'immagine
+    plt.savefig("capacity_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(switch_gf,pos,font_size=12)
     nx.draw_networkx(switch_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("switch_gf.png")      #salva l'immagine
+    plt.savefig("switch_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels4=nx.draw_networkx_edge_labels(load_gf,pos,font_size=12)
     nx.draw_networkx(load_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("load_gf.png")      #salva l'immagine
+    plt.savefig("load_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
 
@@ -211,13 +215,13 @@ def get_path(ip_int, ip_ext, option):
     return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_ext, weight='weight')
 
 def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
-    newPath=get_path(ip_int,hosts[0].ip,option):
+    newPath=get_path(ip_int,hosts[0].ip,option)
     h = [host.ip == ip_int for host in hosts ]
     oldPath;
     if option == PCK_ERROR_OPT:
         oldPath = h.isConnected(ip_ext)
         if oldPath is False:
-        #add path as it's the first time:
+            #add path as it's the first time:
             for i in range (1, len(newPath) - 2):
                 #install fluxes from ip_src to ip_dst
                 msg = of.ofp_flow_mod()
@@ -483,6 +487,7 @@ class Host():
     def addConnection(host,path=None, t_type=TRANSP_BOTH):
         #update timer if ip exist
         if not isinstance(host,Host):
+            pass #TODO
         if(t_type == TRANSP_BOTH):
             if path is not None: # add both traffic
                 log.debug("adding both transport connection to the host destination")
@@ -494,11 +499,11 @@ class Host():
         elif t_type == TCP:
             if path is not None: # add both traffic
                 log.debug("adding TCP path to the host destination")
-            self.lastChange = datetime.datetime.now()
-            self.connectedToTCP[host] = (datetime.datetime.now(),path)
+                self.lastChange = datetime.datetime.now()
+                self.connectedToTCP[host] = (datetime.datetime.now(),path)
             else:
                 log.debug("adding host to the connected one")
-        elif t_type == UDP
+        elif t_type == UDP:
             if path is not None: # add both traffic
                 log.debug("adding UDP path to the host destination")
             else:
@@ -516,7 +521,7 @@ class Host():
         otherwise return False"""
         if isinstance(ip,IPAddr):
             for host,value in self.connectedToUDP:
-                if ip == host.ip and not t_type == TCP: # è un ip e sono in UDP o entrambe
+                if ip == host.ip and not t_type == TCP: # e' un ip e sono in UDP o entrambe
                     return value
             for host,value in self.connectedToTCP:
                 if ip == host.ip and not t_type == UDP:
@@ -525,7 +530,7 @@ class Host():
 
         elif isinstance(ip,Host):
             for host,value in self.connectedToUDP:
-                if ip.ip == host.ip and not t_type == TCP: # è un ip e sono in UDP o entrambe
+                if ip.ip == host.ip and not t_type == TCP: # e' un ip e sono in UDP o entrambe
                     return value
             for host,value in self.connectedToTCP:
                 if ip.ip == host.ip and not t_type == UDP:
