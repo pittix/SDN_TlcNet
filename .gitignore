@@ -7,4 +7,5 @@
 */*.pyc
 pox/ext/*.pyc   
 LICENCE
-
+*.svg
+*/*.svg

@@ -40,6 +40,7 @@ LOAD_OPT      = 5
 
 TCP = 1 # same as Host
 UDP = 2
+TRANSP_BOTH = 0
 
 def add_host(dpid, mac, port, ip):
     """
@@ -128,43 +129,43 @@ def save_graph(counter):
     nx.draw_networkx(grafo,pos, with_labels=True, node_size=700, width=6, font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
 
-    plt.savefig("grafo%i.png" % (counter))      #salva l'immagine
+    plt.savefig("grafo%i.svg" % (counter))      #salva l'immagine
     plt.clf()                     #elimina l'immagine corrente dalla libreria
 
     edge_labels=nx.draw_networkx_edge_labels(pck_error_min_gf,pos,font_size=12)
     nx.draw_networkx(pck_error_min_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_min_gf%i.png" % (counter))   #salva l'immagine
+    plt.savefig("pck_error_min_gf%i.svg" % (counter))   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels=nx.draw_networkx_edge_labels(pck_error_max_gf,pos,font_size=12)
     nx.draw_networkx(pck_error_max_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_max_gf%i.png" % (counter))   #salva l'immagine
+    plt.savefig("pck_error_max_gf%i.svg" % (counter))   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
     nx.draw_networkx(delay_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("delay_gf%i.png" % (counter))      #salva l'immagine
+    plt.savefig("delay_gf%i.svg" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(capacity_gf,pos,font_size=12)
     nx.draw_networkx(capacity_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("capacity_gf%i.png" % (counter))      #salva l'immagine
+    plt.savefig("capacity_gf%i.svg" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(switch_gf,pos,font_size=12)
     nx.draw_networkx(switch_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("switch_gf%i.png" % (counter))      #salva l'immagine
+    plt.savefig("switch_gf%i.svg" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels4=nx.draw_networkx_edge_labels(load_gf,pos,font_size=12)
     nx.draw_networkx(load_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("load_gf%i.png" % (counter))      #salva l'immagine
+    plt.savefig("load_gf%i.svg" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
 
@@ -227,6 +228,7 @@ def link_delay(dpid1, dpid2, value):
     """
     # global delay_gf
     delay_gf[dpid1][dpid2]['weight']=value
+    log.debug("update delay with weight %.2f",delay_gf[dpid1][dpid2]['weight'])
 
 def link_pck_error(dpid1, dpid2, value):
     """
@@ -235,7 +237,8 @@ def link_pck_error(dpid1, dpid2, value):
     # global pck_error_min_gf
     # global pck_error_max_gf
     pck_error_min_gf[dpid1][dpid2]['weight']=value
-    pck_error_max_gf[dpid1][dpid2]['weight']=1-value
+    pck_error_max_gf[dpid1][dpid2]['weight']=100-value
+    log.debug("update pck_err_min with weight %.2f",pack_err_min_gf[dpid1][dpid2]['weight'])
 
 def link_load(dpid1, dpid2, value):
     """
@@ -243,6 +246,7 @@ def link_load(dpid1, dpid2, value):
     """
     # global load_gf
     load_gf[dpid1][dpid2]['weight']=value
+    log.debug("update load with weight %.2f",load_gf[dpid1][dpid2]['weight'])
 
 def link_capacity(dpid1, dpid2, value):
     """
@@ -250,6 +254,7 @@ def link_capacity(dpid1, dpid2, value):
     """
     # global capacity_gf
     capacity_gf[dpid1][dpid2]['weight']=value
+    log.debug("update capacity with weight %i",capacity_gf[dpid1][dpid2]['weight'])
 
 def get_gf(option):
     # global grafo
@@ -306,16 +311,17 @@ def add_path(ip_src, ip_dst, option, isExt=False):
     else:
         newPath=get_path(ip_src,ip_dst,option)
 
+    oldPath = h.isConnected(ip_dst)
     if option == PCK_ERROR_MAX_OPT:
         h.addConnection(ip_dst,newPath,UDP)
     else:
         h.addConnection(ip_dst,newPath,TCP)
-    oldPath = h.isConnected(ip_dst)
     if oldPath is False:
         #add path as it's the first time:
         for i in range (1, len(newPath) - 2):
             #install fluxes from ip_src to ip_dst
             msg = of.ofp_flow_mod()
+            msg.command = of.OFPFC_MODIFY
             msg.priority = DEFAULT_IP_PATH
             msg.match.nw_dst = IPAddr(str(ip_dst))
             msg.match.nw_src = IPAddr(str(ip_src))
@@ -329,6 +335,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
             #install fluxes from ip_dst to ip_src
             msg = of.ofp_flow_mod()
             msg.priority = DEFAULT_IP_PATH
+            msg.command = of.OFPFC_MODIFY
             msg.match.nw_dst = IPAddr(str(ip_src))
             msg.match.nw_src = IPAddr(str(ip_dst))
             msg.match.dl_type = 0x800 #ip
@@ -336,7 +343,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
             pt_pre_hop = switch[newPath[i]].dpid_port[newPath[i-1]] #TODO
             msg.actions.append(of.ofp_action_output(port = pt_pre_hop ))
             core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
-        h.addConnection(hosts[0],newPath,UDP)
+        # h.addConnection(hosts[0],newPath,UDP)
     else:
         for i in range(1,max(len(oldPath,newPath))-2): # first two rules are the same (Host obj and swtich)
             if oldPath[i-1] == newPath[i-1]: #same switch
@@ -377,7 +384,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                         #install new rules
                         for j in range (i,len(newPath)-2):
                             msg=of.ofp_flow_mod()
-
+                            msg.command = of.OFPFC_MODIFY
                             msg.priority = DEFAULT_IP_PATH
                             msg.match.nw_dst = IPAddr(str(ip_dst))
                             msg.match.nw_src = IPAddr(str(ip_src))
@@ -411,6 +418,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                     for j in range (i,len(newPath)-2):
                         msg=of.ofp_flow_mod()
                         msg.priority = DEFAULT_IP_PATH
+                        msg.command = of.OFPFC_MODIFY
                         msg.match.nw_dst = IPAddr(str(ip_dst))
                         msg.match.nw_src = IPAddr(str(ip_src))
                         msg.match.dl_type = 0x800 #ip
@@ -428,12 +436,14 @@ def add_default_rules(dpid, net = None):
     """
     msg = of.ofp_flow_mod()
     msg.priority = DEFAULT_RULES_PRIORITY
+    msg.command = of.OFPFC_MODIFY
     msg.match.dl_type = 0x806 #arp reques
     msg.actions.append(of.ofp_action_output(port = of.OFPP_FLOOD ))
     core.openflow.sendToDPID(dpid, msg)
 
     #msg del delay discovery
     msg = of.ofp_flow_mod()
+    msg.command = of.OFPFC_MODIFY
     msg.priority = DEFAULT_RULES_PRIORITY
     msg.match.dl_type = 0x800 #ip type
     msg.match.nw_src = IPAddr("100.100.100.1")
@@ -448,6 +458,7 @@ def add_default_rules(dpid, net = None):
                                 # and send PacketIn to controller
         # flood internal network
         msg = of.ofp_flow_mod()
+        msg.command = of.OFPFC_MODIFY
         msg.priority = DEFAULT_INT_NET_RULE # lowest rule ever
         msg.match.dl_type = 0x800 #ip type
         msg.match.nw_dst = net
@@ -465,33 +476,12 @@ def add_default_rules(dpid, net = None):
             msg = of.ofp_flow_mod()
             # second lowest rule. If this switch is added after others, this rule will overcome
             #the default rule to the gateway
+
+            msg.command = of.OFPFC_MODIFY
             msg.priority = DEFAULT_EXT_NET_RULE
             msg.match.dl_type = 0x800 #ip type
             msg.actions.append(of.ofp_action_output(port=host[0].switch[1]))
             core.openflow.sendToDPID(dpid, msg)
-    #     else:
-    #         msg = of.ofp_flow_mod()
-    #         # second lowest rule. If this switch is added after others, this rule will overcome
-    #         #the default rule to the gateway
-    #         msg.priority = DEFAULT_EXT_NET_RULE
-    #         msg.match.dl_type = 0x800 #ip type
-    #         acts=[]
-    #         acts.append(of.ofp_action_output(port=of.OFPP_ALL))
-    #         acts.append(of.ofp_action_output(port=of.OFPP_CONTROLLER))
-    #         msg.actions=acts
-    #         core.openflow.sendToDPID(dpid, msg)
-    # else:
-    #     msg = of.ofp_flow_mod()
-    #     # second lowest rule. If this switch is added after others, this rule will overcome
-    #     #the default rule to the gateway
-    #     msg.priority = DEFAULT_EXT_NET_RULE
-    #     msg.match.dl_type = 0x800 #ip type
-    #     acts=[]
-    #     acts.append(of.ofp_action_output(port=of.OFPP_ALL))
-    #     acts.append(of.ofp_action_output(port=of.OFPP_CONTROLLER))
-    #     msg.actions=acts
-    #     core.openflow.sendToDPID(dpid, msg)
-    #MORE DEFAULT RULES
 
 def ip_connected(ip1, ip2):
     try:
@@ -606,7 +596,12 @@ class Host():
         the path to that IP or Host
         otherwise return False"""
         if isinstance(ip,IPAddr):
-            for host,value in self.connectedToUDP:
+            for i,value in enumerate(self.connectedToUDP):
+                try:
+                    host = value[0]
+                    path = value[1][1]
+                except:
+                    host=value
                 if ip == host.ip and not t_type == TCP: # e' un ip e sono in UDP o entrambe
                     return value
             for i,val in enumerate(self.connectedToTCP):

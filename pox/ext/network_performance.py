@@ -38,7 +38,7 @@ def send_msg(dpid):
     lista[dpid].add_rtt(identity)
 
 
-def create_msg(ipsrc = "100.100.100.0", ipdst = "100.100.100.1", mac_src = "80:80:80:80:80:80", mac_dst = "50:50:50:50:50:50", port = of.OFPP_CONTROLLER):
+def create_msg(ipsrc = "100.100.100.2", ipdst = "100.100.100.1", mac_src = "80:80:80:80:80:80", mac_dst = "50:50:50:50:50:50", port = of.OFPP_CONTROLLER):
     ipv4_pck = pkt.ipv4()
     ipv4_pck.srcip = IPAddr(ipsrc)
     ipv4_pck.dstip = IPAddr(ipdst)
@@ -77,12 +77,12 @@ def _handle_PacketIn(event):
         ip_packet = packet.find('ipv4')
         ip_dst = ip_packet.dstip #ip destinatario
 
-        if ipaddress.IPv4Address(ip_packet.srcip) == ipaddress.IPv4Address('100.100.100.0'):
+        if IPAddr(ip_packet.srcip) == IPAddr('100.100.100.2'):
             #sicuramente RTT msg
             lista[event.dpid].update_rtt(ip_dst, time)
             lista[event.dpid].calcolate_rtt(ip_dst, event.dpid)
             #log.debug("\n\ndpid= %s rtt %s", event.dpid, lista[event.dpid].av_rtt)
-        elif ipaddress.IPv4Address(ip_packet.srcip) == ipaddress.IPv4Address('100.100.100.1'):
+        elif IPAddr(ip_packet.srcip) == IPAddr('100.100.100.1'):
             #sicuramente delay msg
             dpid2 = topo.switch[event.dpid].port_dpid[event.port]
             rtt1 = -1

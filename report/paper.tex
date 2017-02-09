@@ -176,7 +176,7 @@ tries to adjust the traffic and put in the link with the higher path loss the to
 make the connection between two gaming host the one with less delay and tries to redistribute all the traffic in a way
 such that all the nodes have an average throughput as lowest as possible.
 
-\subsection{Traffic analysis}
+\subsection{Traffic analysis}\label{sec:traf}
 We used laptop connected via
 GigabitEthernet interface and Ethernet cable cat.5a to receive the traffic from the destination host.
 Our laptop has been connected via Wi-Fi to our access point via protocol 802.11n.
@@ -200,11 +200,42 @@ decreased to allow communication. The traffic is between the UDP port 80 ##TODO#
 The last traffic analysis we made was with a DOTA[explain what it is] web match.
 We saw that for that type of gaming session, the packet size is about # bytes and involves both TCP and UDP ports.
 
+\section{Statistics}
+The analysis on the traffic presented in sec \ref{sec:traf} was used to get useful information to the graph and allow
+a wise usage of the network. When the switch connects, the each port gives it's capabilities, so these has been used to
+find the utilization of the link and act a change on the path for some links. We choose to assign a bad link
+to nodes that connect with many other nodes and that generates a lot of traffic. When a link is found to be utilized more of half the
+capacity and other links are less utilized, the path of some traffic has been changed to equally distribute the traffic.
+For the p2p traffic, as shown in paper TODO ref!!** the torrent traffic must not be changed very often, as
+the protocol itself tryies to find different path to reach a destination. This type of traffic, instead, uses the path
+where the packet error rate, calculated with the port statistics, is higher. How the path error rate has been calculated
+can be found in \ref{sec:calculations}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}\label{sec:res}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The Results section contains a selection of the most relevant results with the explanation of their meaning. Please, not that you do NOT have to describe the shape of the curves that can be seen in the figures, but the reasons WHY such curves have that shape!
+\subsection{The ARP packets}
+During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
+This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
+HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
+hiher the collision range. The bridges limits their collision range to the port. With openflow each switching unit can
+act as a bridge or as a router. In both cases analyses the header of the L2 packet L3 packet and some of the L4 header.
+If it has the rule to forward the packet, it will act as declared in the most specific matching rule. Otherwise it will
+send to the controller a PacketIn and the controller will act as programmed. If an host want to communicate to another host whithin
+the network, it sends the packet to the line and then the switch will check in its tables and execute the actions of the match found.
+For an IP network, it will check the path to reach a destination and then send to the defined output port. The mac address in this case
+became useless, as the connection is point to point. So, knowing the destination layer2 address is useless as the switch can act
+regardless of it. The only thing the switch need to know is the layer2, layer 3 addresses and, at most, the layer 4 address.
+This can be seen by a reader as a violation of the layers in the ISO/OSI stack, but to exploit the potentials of the SDN approach,
+this is necessary. TODO explain why TODO!!!!**
+
+\subsection{The Gateway}
+The computers don't need anymore to set a gateway to reach another network as the controller and the switches will redirect the traffic
+properly, according to the rules set by the first. The controller must only know which switch ports are connected to the
+internet and then add them to the path. in this way, the controller can set a path to reach it and provide connectivity with
+a traffic shaping policy and/or differentiate the traffic from and to different networks. 
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions}\label{sec:conclusion}
