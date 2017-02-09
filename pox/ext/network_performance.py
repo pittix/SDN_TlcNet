@@ -37,6 +37,7 @@ def send_msg(dpid):
     core.openflow.sendToDPID(dpid, msg)
     lista[dpid].add_rtt(identity)
 
+    #ciaop pino
 
 def create_msg(ipsrc = "100.100.100.0", ipdst = "100.100.100.1", mac_src = "80:80:80:80:80:80", mac_dst = "50:50:50:50:50:50", port = of.OFPP_CONTROLLER):
     ipv4_pck = pkt.ipv4()

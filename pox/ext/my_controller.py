@@ -46,6 +46,7 @@ SDN_network = ""#"192.168.0.0/16"
 PCK_ERROR_OPT = 1
 DELAY_OPT     = 2
 DEFAULT_OPT   = 3
+
 hasGateway    = False
 hasNetwork    = False
 EXTERNAL = None
@@ -61,23 +62,23 @@ def _handle_LinkEvent(event):
     """
     l = event.link
     #if there's a link, the controller knows the link between switches
-    for i,c in enumerate(unknown_link):
-        if c[0] == l.dpid1:
-            try:
-                dpid2 = switch[c[0]].port_dpid[c[1]]
-                topo.link_capacity(c[0],dpid2, c[2])
-                del unknown_link[i]# remove unknown link from the list
-            except:
-                break # doesn't have the other link yet
-        elif c[0] == l.dpid2:
-            try:
-                dpid = switch[c[0]].port_dpid[c[1]]
-                topo.link_capacity(c[0],dpid, c[2])
-                del unknown_link[i] # remove unknown link from the list
-            except:
-                break # doesn't have the other link yet
-        else:
-            continue
+    # for i,c in enumerate(unknown_link):
+    #     if c[0] == l.dpid1:
+    #         try:
+    #             dpid2 = switch[c[0]].port_dpid[c[1]]
+    #             topo.link_capacity(c[0],dpid2, c[2])
+    #             del unknown_link[i]# remove unknown link from the list
+    #         except:
+    #             break # doesn't have the other link yet
+    #     elif c[0] == l.dpid2:
+    #         try:
+    #             dpid = switch[c[0]].port_dpid[c[1]]
+    #             topo.link_capacity(c[0],dpid, c[2])
+    #             del unknown_link[i] # remove unknown link from the list
+    #         except:
+    #             break # doesn't have the other link yet
+    #     else:
+    #         continue
     if event.added:
         log.debug('LinkAdd dpid1: {0} porta {1}, dpid2: {2} porta {3}'.format(l.dpid1, l.port1, l.dpid2, l.port2))
         topo.add_link(l.dpid1, l.port1, l.dpid2, l.port2)
@@ -97,6 +98,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
         if(port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_HD"] or
                 port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_FD"]):
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10; #TODO constants
+            log.debug("port %i has capacity %i", port.port_no, topo.switch[event.connection.dpid].port_capacity[port.port_no])
             try:
                 topo.link_capacity(event.connection.dpid,topo.switch[event.connection.dpid].port_dpid[port.port_no],10)
             except:
@@ -105,6 +107,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_HD"] or
             port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_FD"]):
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 100; #TODO constants
+            log.debug("port %i has capacity %i", port.port_no, topo.switch[event.connection.dpid].port_capacity[port.port_no])
             try:
                 topo.link_capacity(event.connection.dpid,topo.switch[event.connection.dpid].port_dpid[port.port_no],100)
             except:
@@ -113,6 +116,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
         elif(port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_HD"] or
             port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_FD"]):
             topo.switch[event.connection.dpid].port_capacity[port.port_no] = 1000; #TODO constants
+            log.debug("port %i has capacity %i", port.port_no, topo.switch[event.connection.dpid].port_capacity[port.port_no])
             try:
                 topo.link_capacity(event.connection.dpid,topo.switch[event.connection.dpid].port_dpid[port.port_no],1000)
             except:
@@ -132,16 +136,20 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
             EXTERNAL = (event.dpid,port.port_no)
             topo.hosts[0].switch=EXTERNAL
             topo.hosts[0].mac=EthAddr("FF:FF:FF:FF:FF:FF") # broadcast mac
-            sw  = event.dpid in topo.switch #switch already added, so it exist
+            sw=None
+            for dpid in topo.switch: #switch already added, so it exist
+                if topo.switch[dpid].dpid == event.connection.dpid:
+                    sw = topo.switch[dpid]
+                    break
             sw.port_dpid[port.port_no] = IPAddr("0.0.0.0",0)
             sw.dpid_port[IPAddr("0.0.0.0",0)]=port.port_no
             #probably useless
             sw.port_mac[port.port_no]=port.hw_addr
             sw.mac_port[port.hw_addr]=port.port_no
             #add the link to the external
-            topo.add_link(event.dpid,port.port_no,topo.hosts[0].ip,port.port_no,isHost=True)
+            #topo.add_link(event.dpid,port.port_no,topo.hosts[0].ip,port.port_no)
             #all ip_dst == external through port
-            topo.add_default_ext_rules(event.connection.dpid, SDN_network, port)
+            #topo.add_default_ext_rules(event.connection.dpid, SDN_network, port)
 
         #default rules
         # if SDN_network != "": # I set the default network
@@ -153,23 +161,24 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
 def _handle_port_status(event):
         if not event.modified :
             return
-        for port in event.desc:
-            if ((port.state & of.ofp_port_state_rev_map["OFPPS_LINK_DOWN"]) and (port.port_no<10000)):
-                 log.info("port %i  is down",port.port_no)
-            #check only current status. ignore maximum status. it's more realistic
-            if(port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_HD"] or
-                    port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_FD"]):
+        port = event.ofp.desc
+        dpid = event.dpid
+        if ((port.state & of.ofp_port_state_rev_map["OFPPS_LINK_DOWN"]) and (port.port_no<10000)):
+             log.info("port %i  is down",port.port_no)
+        #check only current status. ignore maximum status. it's more realistic
+        if(port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_HD"] or
+                port.curr & of.ofp_port_features_rev_map["OFPPF_10MB_FD"]):
                 topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10; #TODO constants
                 log.info("port %i changed to 10Mbps",port.port_no)
-            elif(port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_HD"] or
+        elif(port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_HD"] or
                 port.curr & of.ofp_port_features_rev_map["OFPPF_100MB_FD"]):
                 topo.switch[event.connection.dpid].port_capacity[port.port_no] = 100; #TODO constants
                 log.info("port %i changed to 100Mbps",port.port_no)
-            elif(port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_HD"] or
+        elif(port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_HD"] or
                 port.curr & of.ofp_port_features_rev_map["OFPPF_1GB_FD"]):
                 topo.switch[event.connection.dpid].port_capacity[port.port_no] = 1000; #TODO constants
                 log.info("port %i changed to 1Gbps",port.port_no)
-            elif(port.curr & of.ofp_port_features_rev_map["OFPPF_10GB_FD"]):
+        elif(port.curr & of.ofp_port_features_rev_map["OFPPF_10GB_FD"]):
                 topo.switch[event.connection.dpid].port_capacity[port.port_no] = 10000; #TODO constants
                 log.info("port %i is a 10Gbps",port.port_no)
 
@@ -212,60 +221,18 @@ def _handle_ip_packet(event):
     ip_src = IPAddr(ip_pck.srcip) #ip sorgente
     ip_dst = IPAddr(ip_pck.dstip) #ip destinatario
 
-#<<<<<<< HEAD
-    # alreadySrc=False
-    # alreadyDst=False
-    # for hst in topo.hosts:
-    #     if ip_src == hst.ip:
-    #         alreadySrc=True
-    #         hst.mac=event.src_mac
-    #         hst.switch=(event.dpid,event.in_port)
-    #
-    #         log.debug("src host already found.")
-    #         if hst.isConnected(ip_dst,Host.TRANSP_BOTH):
-    #             log.debug("connection found before")
-    #             alreadyDst =True
-    #
-    #
-    # if not alreadySrc and not (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
-    #     #add host to host list
-    #     h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
-    #     h.addConnection(ip_dst)
-    #     topo.hosts.append(h)
-    #
-    # elif ((IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
-    #     """ pacchetti di controllo """
-    #     #non esegue nulla in quanto se ne occupa network_performance
-    #     return
-    #
-    # elif not alreadyDst and not ip_dst.inNetwork(SDN_network):#, netmask=SDN_NETMASK)):
-    #     for h in topo.hosts:
-    #         if h.ip == ip_src:
-    #             if h.isGaming:
-    #                 log.debug("Adding link with the lowest delay path")
-    #                 path = topo.get_path(topo.get_gf(topo.DELAY_OPT),h.ip, ip_dst)
-    #                 h.addConnection(ip_dst,path)
-    #                 topo.add_path_through_gw(h.ip, ip_dst, topo.DELAY_OPT)
-    #             elif h.traffic:
-    #                 log.debug("Adding link with the worst graph")
-    #                 path = topo.get_path(topo.get_gf(topo.PCK_ERROR_MAX_OPT))
-    #                 h.addConnection(ip_dst,path)
-    #                 topo.add_path_through_gw(h.ip, ip_dst, topo.PCK_ERROR_MAX_OPT)
-    #             else:
-    #                 path = topo.get_path(topo.get_gf(topo.DEFAULT_OPT))
-    #                 topo.add_path_through_gw(ip_src, ip_dst, DEFAULT_OPT)
-    #                 h.addConnection(ip_dst,path)
-    #
 
-    if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
-        """ pacchetti di controllo """
-        #non esegue nulla in quanto se ne occupa network_performance
-        return
-    elif (ip_src.in_network(SDN_network)): # netmask=SDN_NETMASK)):
-        """ sorgente e' nella sotto rete SDN """
-        #log.debug("is_src %s, il_log: %s", ip_src, topo.is_logged(ip_src) )
-        if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
-            pass
+
+    for i,pkt in enumerate(recent_packets):
+        if pkt[0] == ip_src and pkt[1]==ip_dst and pkt[2] == event.dpid:
+            return # it's a flooded packet that reached controller
+        # elif pkt[0] == ip_dst and pkt[1]==ip_src and pkt[2] ==event.dpid: #packet arrives in order of flood.
+            #faulty links will be deleted by discovery
+            #topo.add_link(event.connection.dpid,event.port,pkt[2],pkt[3])
+            # try:
+            #     topo.add_path(ip_src,ip_dst,topo.LOAD_OPT)
+            # except:
+            #     del recent_packets[i] # discovery with tests
         else:
             topo.add_host(event.connection.dpid, src_mac, event.port, ip_src)
             h = topo.Host(event.dpid,event.in_port, ipAddr=ip_src,macAddr=src_mac)
@@ -312,7 +279,9 @@ def _handle_ip_packet(event):
 #                 del recent_packets[i]
 # >>>>>>> origin/andrea
 
-    if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1')):
+    if (IPAddr(ip_src) == IPAddr('100.100.100.0') or IPAddr(ip_src) == IPAddr('100.100.100.1') or
+        IPAddr(ip_src) == IPAddr('0.0.0.0') or IPAddr(ip_src) == IPAddr('255.255.255.255') or
+        IPAddr(ip_dst) == IPAddr('0.0.0.0') or IPAddr(ip_dst) == IPAddr('255.255.255.255')):
         return;
     #internal packet to ext
     if type(EXTERNAL) is tuple and not ip_dst.inNetwork(SDN_network[0],netmask=SDN_network[1]) :
@@ -326,9 +295,26 @@ def _handle_ip_packet(event):
     # alreadySrc = False
     # alreadyDst=False
     #
+    log.debug("src=%s dst = %s",ip_src , ip_dst)
+
+    log.debug("%s is logged",ip_src)
+    print topo.hosts
+    print ("=======")
+    print topo.ip_to_switch
+
+    # h0=topo.hosts[0]
+    # if h0.switch is not None:
+    #     if(event.connection.dpid == h0.switch[0]):
+    #         del topo.hosts[0]
+    log.debug("hasNetwork= %s --- hasGateway=%s",hasNetwork,hasGateway)
     if (topo.is_logged(ip_src)): #se non e' presente lo aggiungo
-        if hasNetwork and ip_dst.inNetwork(SDN_network) and topo.is_logged(ip_dst):
-            topo.add_path(ip_src,ip_dst,LOAD_OPT)
+        if (hasNetwork and ip_dst.inNetwork(SDN_network[0],netmask=SDN_network[1])) and topo.is_logged(ip_dst):
+            # for h in topo.hosts:
+            #     if h.ip == ip_src:
+            #         h.mac = src_mac
+            #         h.switch = (event.connection.dpid,event.port)
+            log.debug ("ip src and ip dst are logged. now add_path")
+            topo.add_path(ip_src,ip_dst,topo.LOAD_OPT)
         elif hasNetwork and not ip_dst.inNetwork(SDN_network):
             topo.add_path_through_gw(ip_src,ip_dst,LOAD_OPT)
         else: #is in network, but I don't know where it is. Controlled flood
@@ -339,13 +325,16 @@ def _handle_ip_packet(event):
             core.openflow.sendToDPID(event.connection.dpid,msg)
     else:
         topo.add_host(event.connection.dpid, src_mac, event.port, ip_src)
-        for h in topo.hosts:
-            if(h.ip == ip_src):
-                h.addConnection(ip_dst)
-        if hasNetwork and ip_dst.inNetwork(SDN_network) and topo.is_logged(ip_dst):
-            topo.add_path(ip_src,ip_dst,LOAD_OPT)
-        elif hasNetwork and not ip_dst.inNetwork(SDN_network):
-            topo.add_path_through_gw(ip_src,ip_dst,LOAD_OPT)
+        log.debug ("ip src has been logged")
+        # for h in topo.hosts:
+        #     if(h.ip == ip_src):
+        #         # h.addConnection(ip_dst)
+        if hasNetwork and ip_dst.inNetwork(SDN_network[0],netmask=SDN_network[1]) and topo.is_logged(ip_dst):
+            log.debug ("ip src and ip dst are logged. now add_path")
+            topo.add_path(ip_src,ip_dst,topo.LOAD_OPT)
+        elif hasNetwork and not ip_dst.inNetwork(SDN_network[0],netmask=SDN_network[1]):
+            log.debug ("ip src add_path through internet")
+            topo.add_path_through_gw(ip_src,ip_dst,topo.LOAD_OPT)
         else: #is in network, but I don't know where it is. Controlled flood
             recent_packets.append([ip_src,ip_dst,event.connection.dpid,event.port,datetime.datetime.now()])
             msg = of.ofp_packet_out()
@@ -370,6 +359,9 @@ def _show_topo():
 
 
 def launch(__INSTANCE__=None, **kw):
+    global hasNetwork
+    global hasGateway
+    global SDN_network
     """
     start:
         pox.topology.launch()
@@ -385,14 +377,16 @@ def launch(__INSTANCE__=None, **kw):
             # print("parsing mac addr")
             log.debug("parsing mac address")
             if len(v) == 17 : # "00:11:22:33:44:55:66" is the mac address form
-                h=topo.Host(None,None,ipAddr=IPAddr("0.0.0.0",0),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
-                topo.hosts.append(h) # add the host as the first one
+                topo.Host(None,None,ipAddr=IPAddr("0.0.0.0",0),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
+                # topo.hosts.append(h) # add the host as the first one
                 # print("added ext host" )
+                hasGateway=True
                 log.info("added the external host and ready for finding the switch/port to which forward all external packets")
 
         elif k.find("net")>-1 :
             log.debug("parsing network address")
             if len(v) >=9 and len(v)<=18 : # "192.168.240.240/24" is the net address form
+                hasNetwork=True
                 n = v.split('/') # divide the cidr notation
                 SDN_network = (IPAddr(n[0]),int(n[1])) # tuple
                 # print("added ext host" )
@@ -411,4 +405,4 @@ def launch(__INSTANCE__=None, **kw):
     Timer(5, _show_topo, recurring=True) #every 2 seconds execute _show_topo
 
 #    Timer(30, topo.ipCleaner, recurring = True) # every 30s clean the old connection ip
-    Timer(30, gu.checkChanges, recurring = True) # change the graph if something happened
+    # Timer(30, gu.checkChanges, recurring = True) # change the graph if something happened

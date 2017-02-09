@@ -38,6 +38,9 @@ DELAY_OPT     = 2
 DEFAULT_OPT   = 3
 LOAD_OPT      = 5
 
+TCP = 1 # same as Host
+UDP = 2
+
 def add_host(dpid, mac, port, ip):
     """
     add host on the graph and the port of switch
@@ -62,6 +65,19 @@ def add_host(dpid, mac, port, ip):
         log.debug("add host %s", ip)
     else:
         log.warning("Add host to switch that don't exist")
+
+        # msg = of.ofp_flow_mod()
+        # msg.dl_type = 0x800
+        # msg.match.dl_dst = mac
+        # # msg.match.nw_dst = IPAddr(ip,24)
+        # msg.actions.append(of.ofp_action_output(port=port))
+        # core.openflow.sendToDPID(dpid,msg)
+        #
+        # msg = of.ofp_flow_mod()
+        # msg.match.dl_dst = mac
+        # msg.dl_type = 0x806
+        # msg.actions.append(of.ofp_action_output(port=port))
+        # core.openflow.sendToDPID(dpid,msg)
 
 def add_switch(dpid):
     """
@@ -210,10 +226,13 @@ def get_gf(option):
     elif option == DEFAULT_OPT:
         return grafo
 
-def get_path(ip_int, ip_ext, option):
-    return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_ext, weight='weight')
+def get_path(ip_int, ip_dst, option):
+    if option == DEFAULT_OPT:
+        return nx.dijkstra_path(grafo, source=ip_int, target=ip_dst)
+    else:
+        return nx.dijkstra_path(grafo, source=ip_int, target=ip_dst)#, weight='weight')
 
-def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
+def add_path_through_gw(ip_int, ip_dst, option,isDpid=False):
 
     if isDpid:
         #TODO dpid to internet
@@ -228,17 +247,22 @@ def add_path_through_gw(ip_int, ip_ext, option,isDpid=False):
 
 
 def add_path(ip_src, ip_dst, option, isExt=False):
+    h=None
+    for hst in hosts:
+        if hst.ip == ip_src:
+            h=hst
+            break
     if isExt:
         newPath=get_path(ip_int,hosts[0].ip,option)
     else:
         newPath=get_path(ip_src,ip_dst,option)
 
-    if option == PCK_ERROR_OPT:
 
-        h.addConnection(ip_ext,newPath,UDP)
+    if option == PCK_ERROR_MAX_OPT:
+        h.addConnection(ip_dst,newPath,UDP)
     else:
-        h.addConnection(ip_ext,newPath,TCP)
-    oldPath = h.isConnected(ip_ext)
+        h.addConnection(ip_dst,newPath,TCP)
+    oldPath = h.isConnected(ip_dst)
     if oldPath is False:
         #add path as it's the first time:
         for i in range (1, len(newPath) - 2):
@@ -247,7 +271,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
             msg.priority = DEFAULT_IP_PATH
             msg.match.nw_dst = IPAddr(str(ip_dst))
             msg.match.nw_src = IPAddr(str(ip_src))
-            msg.match.nw_proto = 17 # UDP
+            # msg.match.nw_proto = 17 # UDP
             msg.match.dl_type = 0x800 #ip
             pt_next_hop = switch[newPath[i]].dpid_port[newPath[i+1]] #TODO
             msg.actions.append(of.ofp_action_output(port = pt_next_hop ))
@@ -260,11 +284,11 @@ def add_path(ip_src, ip_dst, option, isExt=False):
             msg.match.nw_dst = IPAddr(str(ip_src))
             msg.match.nw_src = IPAddr(str(ip_dst))
             msg.match.dl_type = 0x800 #ip
-            msg.match.nw_proto = 17 #UDP
+            # msg.match.nw_proto = 17 #UDP
             pt_pre_hop = switch[newPath[i]].dpid_port[newPath[i-1]] #TODO
             msg.actions.append(of.ofp_action_output(port = pt_pre_hop ))
             core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
-        h.addConnection(hosts[0],path,UDP)
+        h.addConnection(hosts[0],newPath,UDP)
     else:
         for i in range(1,max(len(oldPath,newPath))-2): # first two rules are the same (Host obj and swtich)
             if oldPath[i-1] == newPath[i-1]: #same switch
@@ -277,7 +301,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                         msg.command = of.OFPFC_MODIFY
                         msg.match.nw_dst = IPAddr(str(ip_dst))
                         msg.match.nw_src = IPAddr(str(ip_src))
-                        msg.match.nw_proto = 17 # UDP
+                        # msg.match.nw_proto = 17 # UDP
                         msg.priority = DEFAULT_IP_PATH
                         msg.match.dl_type = 0x800 #ip
                         pt_next_hop = switch[newPath[i-1]].dpid_port[newPath[i]]
@@ -291,7 +315,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                             msg.priority = DEFAULT_IP_PATH
                             msg.match.nw_dst = IPAddr(str(ip_dst))
                             msg.match.nw_src = IPAddr(str(ip_src))
-                            msg.match.nw_proto = 17 # UDP
+                            # msg.match.nw_proto = 17 # UDP
                             msg.match.dl_type = 0x800 #ip
                             core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
                             #delete also the reverse path
@@ -314,7 +338,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                             pt_next_hope = switch[newPath[i]].dpid_port[newPath[i+1]]
                             msg.actions.append(of.ofp_action_output(port = pt_next_hope ))
                             core.openflow.sendToDPID(newPath[i], msg) #switch i-esimo
-                        h.addConnection(ip_ext,newPath,UDP)
+                        h.addConnection(ip_dst,newPath,UDP)
                         return
                 else:
                     #TODO cancella e reinstalla
@@ -324,7 +348,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                         msg.priority = DEFAULT_IP_PATH
                         msg.match.nw_dst = IPAddr(str(ip_dst))
                         msg.match.nw_src = IPAddr(str(ip_src))
-                        msg.match.nw_proto = 17 # UDP
+                        # msg.match.nw_proto = 17 # UDP
                         msg.match.dl_type = 0x800 #ip
                         core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
                         #delete also the reverse path
@@ -333,7 +357,7 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                         msg.priority = DEFAULT_IP_PATH
                         msg.match.nw_dst = IPAddr(str(ip_src))
                         msg.match.nw_src = IPAddr(str(ip_dst))
-                        msg.match.nw_proto = 17 # UDP
+                        # msg.match.nw_proto = 17 # UDP
                         msg.match.dl_type = 0x800 #ip
                         core.openflow.sendToDPID(oldPath[j+1], msg) #switch i-th
                     #install new rules
@@ -450,9 +474,6 @@ class my_Switch():
     def add_host(self, mac , port, ip):
         "add host on the switch's port"
         h=Host(self.dpid,port,ipAddr=ip,macAddr=mac)
-        hosts.append(h)
-        if ( not isinstance(h,Host)):
-            raise("h not a member of class host in my_Switch.add_host")
 
         # if self.dpid_port.has_key(ip):
         #     log.debug("IP still exist on the switch")
@@ -465,13 +486,13 @@ class my_Switch():
         msg = of.ofp_flow_mod()
         msg.priority = DEFAULT_ARP_PATH
         msg.match.dl_type = 0x806 #arp reques
-        msg.match.dl_dst = EthAddr(str(h.mac))
+        msg.match.dl_dst = mac
         msg.actions.append(of.ofp_action_output(port = port ))
         core.openflow.sendToDPID(self.dpid, msg)
 
         msg = of.ofp_flow_mod()
         msg.priority = DEFAULT_IP_PATH
-        msg.match.nw_dst = IPAddr(str(h.ip))
+        msg.match.nw_dst = ip
         msg.match.dl_type = 0x800 #ip
         msg.actions.append(of.ofp_action_output(port = port ))
         core.openflow.sendToDPID(self.dpid, msg)
@@ -536,7 +557,7 @@ class Host():
             log.error("unknown option given for t_type")
 
 
-    def isConnected(self,ip,t_type):
+    def isConnected(self,ip,t_type=TCP):
         """if is connected return the time since when it was connected [datetime.datetime] and
         the path to that IP or Host
         otherwise return False"""
@@ -544,7 +565,13 @@ class Host():
             for host,value in self.connectedToUDP:
                 if ip == host.ip and not t_type == TCP: # e' un ip e sono in UDP o entrambe
                     return value
-            for host,value in self.connectedToTCP:
+            for i,val in enumerate(self.connectedToTCP):
+                try:
+                    value = val[1]
+                    host = value[1]
+                except:
+                    continue
+
                 if ip == host.ip and not t_type == UDP:
                     return value
             return False
