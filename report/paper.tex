@@ -98,7 +98,7 @@ interfaces (e.g. the number of packets going in or out through a specific port o
 how the network is evolving and, if necessary, switch a traffic from congestioned links to other that, in that moment, are almost fully loaded.
 Exploiting the statistic capabilities is the key to manage wisely a network and, since there aren't many papers about these potentialities,
 we decided to focus on that. In this paper we will show how we handled the contemporary traffic between multiple host, both inside SDN network
-nd between the SDN one and the external internet. Starting from traffic analysis and going through the SDN state of the art, we implemented some function
+and between the SDN one and the external internet. Starting from traffic analysis and going through the SDN state of the art, we implemented some function
 to exploit better the SDN POX controller and we reach the end of this paper showing how we found three different types of traffic and
 for each one, we provided different metrics and different path to optimize the load. We realized the controller using POX, a python-based controller
 and we tested it with the switches that were provided us in the Communication Networks Lab at DEI.
@@ -156,15 +156,37 @@ allow the controller to communicate with the switches. The work presented in
 has been implemented to improve the controller speed and efficiency as it make it more reactive.
 The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found
 in the paper called "Getting traffic statistics from network devices in an
-SDN environment using OpenFlow" by D.J. Hamad & others. [ put note here]
+SDN environment using OpenFlow" by D.J. Hamad \& others. [ put note here]
 For traffic analysis we haven't found any paper describing the characteristics of
 some types of flows, so we used our PCs to sniff the traffic. Traffic analysis will be discussed in section \ref{sec:symo}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%parte scritta da Matteo da tradure e forse da spostare
+%\section{Controller Implementation}\label{sec:Implementation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%We developed a Pox based controller using Python2.
+%The main function that we need and that we had developed are:
+%\begin{itemize}
+% \item Gloal knowledg of our network topology with link performance metrics
+% \item Ensure host to host connectivity and external networ reachability using different performance path
+% \item Proces packetIn request
+%\end{itemize}
+
+%\subsection{Network topology}
+%To storage our network topology we use a specific python library called \emph{NetworkX} this library 
+%\url{https://networkx.github.io/}
+%give us the possibility
+%to create a graph. We have create this graph with two types of nodes: Switch and Hosts, all of them connected with link.
+%For now we use a single-edge graph but a real application have to use double-edge graph in orther to measure both link's performances.
+%\newline There is a principal function implemented by Pox called dyscovery.py that give us the event regarding ( check ) host, switch
+%and link connection/disconnection so handling this event we can build our graph step-by-step.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{System Model}\label{sec:symo}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The System model is a description of your operating assumptions with related motivation and justification
+(The System model is a description of your operating assumptions with related motivation and justification)
 
 
 We developed a controller that can handle a mesh network, which has loops, that avoid
@@ -176,14 +198,15 @@ tries to adjust the traffic and put in the link with the higher path loss the to
 make the connection between two gaming host the one with less delay and tries to redistribute all the traffic in a way
 such that all the nodes have an average throughput as lowest as possible.
 
-\subsection{Traffic analysis}
+
+\subsection{Traffic analysis}\label{sec:traf}
 We used laptop connected via
 GigabitEthernet interface and Ethernet cable cat.5a to receive the traffic from the destination host.
 Our laptop has been connected via Wi-Fi to our access point via protocol 802.11n.
 No other traffic sources were active during the testing, so the router was handling only
 the traffic from laptop when sniffing traffic. The connection used was an ADSL2+ via copper.
 We did 3 type of traffic analysis: Gaming traffic, Skype® and torrent traffic. We analyzed
-#Mb for the gaming traffic, #Mb for the VoIP traffic and 3GB for the torrent traffic.
+\#Mb for the gaming traffic, \#Mb for the VoIP traffic and 3GB for the torrent traffic.
 The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP)
 
 The traffic analysis of the torrent protocol shows that the average packet size is the MTU
@@ -195,20 +218,88 @@ to how many IPs, an host is connected to and if it uses UDP.
 For the VoIP we saw that the protocol uses UDP and the traffic, after a transition time, goes only between two hosts.
 The average packet size is the MTU and the protocol tryies to exploit all the channel for a better QoE.
 On another test, we tried the VoIP while a download was ongoing, and we saw that the quality
-decreased to allow communication. The traffic is between the UDP port 80 ##TODO## TOCHECK ##
+decreased to allow communication. The traffic is between the UDP port 80 \#\#TODO\#\# TOCHECK \#\#
 
 The last traffic analysis we made was with a DOTA[explain what it is] web match.
-We saw that for that type of gaming session, the packet size is about # bytes and involves both TCP and UDP ports.
+We saw that for that type of gaming session, the packet size is about \# bytes and involves both TCP and UDP ports.
 
+\section{Statistics}
+The analysis on the traffic presented in sec \ref{sec:traf} was used to get useful information to the graph and allow
+a wise usage of the network. When the switch connects, the each port gives it's capabilities, so these has been used to
+find the utilization of the link and act a change on the path for some links. We choose to assign a bad link
+to nodes that connect with many other nodes and that generates a lot of traffic. When a link is found to be utilized more of half the
+capacity and other links are less utilized, the path of some traffic has been changed to equally distribute the traffic.
+For the p2p traffic, as shown in paper TODO ref!!** the torrent traffic must not be changed very often, as
+the protocol itself tryies to find different path to reach a destination. This type of traffic, instead, uses the path
+where the packet error rate, calculated with the port statistics, is higher. How the path error rate has been calculated
+can be found in \ref{sec:calculations}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Results}\label{sec:res}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The Results section contains a selection of the most relevant results with the explanation of their meaning. Please, not that you do NOT have to describe the shape of the curves that can be seen in the figures, but the reasons WHY such curves have that shape!
+\subsection{The ARP packets}
+During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
+This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
+HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
+hiher the collision range. The bridges limits their collision range to the port. With openflow each switching unit can
+act as a bridge or as a router. In both cases analyses the header of the L2 packet L3 packet and some of the L4 header.
+If it has the rule to forward the packet, it will act as declared in the most specific matching rule. Otherwise it will
+send to the controller a PacketIn and the controller will act as programmed. If an host want to communicate to another host whithin
+the network, it sends the packet to the line and then the switch will check in its tables and execute the actions of the match found.
+For an IP network, it will check the path to reach a destination and then send to the defined output port. The mac address in this case
+became useless, as the connection is point to point. So, knowing the destination layer2 address is useless as the switch can act
+regardless of it. The only thing the switch need to know is the layer2, layer 3 addresses and, at most, the layer 4 address.
+This can be seen by a reader as a violation of the layers in the ISO/OSI stack, but to exploit the potentials of the SDN approach,
+this is necessary. TODO explain why TODO!!!!**
+
+\subsection{The Gateway}
+The computers don't need anymore to set a gateway to reach another network as the controller and the switches will redirect the traffic
+properly, according to the rules set by the first. The controller must only know which switch ports are connected to the
+internet and then add them to the path. in this way, the controller can set a path to reach it and provide connectivity with
+a traffic shaping policy and/or differentiate the traffic from and to different networks. 
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusions}\label{sec:conclusion}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%da vedere come distribuire
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{matteo}
+
+\section{Program structure}
+
+On our controller in orther two offer principals function we have two storage two principal things: the logical topology of the SDN network and the 
+proprirty of every nodes.
+
+\subsection{Topology}
+E' necessario memorizzare la topologia della rete in una struttura dati che permetta la facile ricerca di cammini minimi tra due host. 
+Abbiamo utilizzato quindi una struttura a grafo semplice in cui i nodi interni sono gli switch e le foglie sono gli host della nostra rete.
+Nella realtà le connessioni logiche tra due switch possono prevedere più di un link fisico che può essere mono o bdirezionale.
+Nel nostro sistema abbiamo preferito rappresentare la connessione tra due switch con un unico edge bidirezionale, da cui poi è facilmente estendibile
+in vista di un' applicazione pratica.
+
+Per gestire il grafo viene utilizzata la libreria scritta in python NeworkX
+
+The scope of our structure is storage the logically connection of network's nodes in orther to quikly discovery the minimum path 
+
+\subsection{Network knowledge}\label{sec:topo}
+Our controller program need to know SDN all network topology in orther to guided ( instradare ) the packet along a better path or along a path to ensure 
+a better ( funzionamento ) on SDN network.
+We use two type of date structur:
+\begin{itemize}
+ \item \emph{Switch and Node}, we create ad-hoc object to save the main information of every single Node and Switch. Inside switch opject there are many 
+ dictionary that ( permettono ) to find quikly port to switch association, ip to port association and other. [da sistemare con piu' precisione]
+ \item \emph{Logically connection} to have a complete knowledg of the topology we use graph structured, despitly ( diversamente ) reality in
+ whitch  double-edge used we use single-edge graph to avoid evil implementation difficult that esule our aim. The NetworkX python library give as method
+ to create a graph in witch every node is a pointer to real Host or Switch object and the link conceptually have various metrics attribute.
+ ``Conceptually'' because NetworkX library don't give us the possibility to save more than one single weight attribute for each link, so 
+ we need to mantain multy graph, each of every metrics used with the same topology atribute but different weigth on theyr links.
+\end{itemize}
+
+
 
 \end{document}

@@ -147,7 +147,7 @@ def _setPktLoss(stat,dpid):
         if(total == 0):
             pErrRate.append(0)
         else:
-            pErrRate.append(errors/total)
+            pErrRate.append(100*errors/total)
     #get the link connection for a switch/port and update the weight
     for i,PER in enumerate(pErrRate):
         try: #there isn't a link yet
@@ -201,13 +201,17 @@ def _setTraffic(flow_stat,dpid):
         if table["actions"]>10000:
             continue
         log.debug("*** p: %i bc: %i  ts: %i",table["actions"],table["byteCount"],table["Tsecond"])
-        avgTrafPort += 8*10^9*table["byteCount"]/table["Tnanos"] # need a table for each rule
-        log.debug("average pkt size %.4f",avgTrafPort)
+        if(table["Tnanos"]==0):
+            continue
+        else:
+            avgTrafPort += 8*10^9*table["byteCount"]/table["Tnanos"] # need a table for each rule
+            log.debug("average pkt size %.4f",100*avgTrafPort)
     #for port,avg in avgTrafPort:
 
         dpid2=myTopo.switch[dpid].port_dpid[table["actions"]]
     #set the traffic load [0;1] 0= no traffic. 1= link is full
-        utilization = avgTrafPort/myTopo.switch[dpid].port_capacity[1]
+
+        utilization = 100*avgTrafPort/myTopo.switch[dpid].port_capacity[table["actions"]]
         log.debug("Link utilization is %.4f",utilization)
         myTopo.link_load(dpid, dpid2, utilization)
         if(utilization>TRAFFIC_THRES): #byte for packet
