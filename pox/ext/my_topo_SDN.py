@@ -284,7 +284,7 @@ def get_gf(option):
 
 def get_path(ip_int, ip_dst, option):
     log.debug("get_path: ip_src=%s  ip_dst=%s",ip_int,ip_dst)
-    print get_gf(option).edges()
+    # print get_gf(option).edges()
     if option == DEFAULT_OPT:
         return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_dst)
     else:

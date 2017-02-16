@@ -145,7 +145,7 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
         #Find the port where is connected the standard router
         if hasGateway  and port.hw_addr == topo.hosts[0].mac: #is the switch with route to internet
             log.info("found port to the internet")
-            EXTERNAL = (event.dpid,port.port_no)
+            EXTERNAL = (event.connection.dpid,port.port_no)
             topo.hosts[0].switch=EXTERNAL
             topo.hosts[0].mac=EthAddr("FF:FF:FF:FF:FF:FF") # broadcast mac
             sw=None
@@ -153,16 +153,28 @@ def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo swi
                 if topo.switch[dpid].dpid == event.connection.dpid:
                     sw = topo.switch[dpid]
                     break
-            sw.port_dpid[port.port_no] = IPAddr("192.168.10.254",24)
-            sw.dpid_port[IPAddr("192.168.10.254",24)]=port.port_no
+            sw.port_dpid[port.port_no] = IPAddr("192.168.11.8",24)
+            sw.dpid_port[IPAddr("192.168.11.8",24)]=port.port_no
             #probably useless
             sw.port_mac[port.port_no]=port.hw_addr
             sw.mac_port[port.hw_addr]=port.port_no
+
+            # msg = of.ofp_flow_mod()
+            # msg.match.dl_type = 0x800
+            # msg.priority = topo.DEFAULT_EXT_NET_RULE
+            # msg.actions.append(of.ofp_action_output(port=port.port_no))
+            # core.openflow.sendToDPID(msg,event.connection.dpid)
+            print EXTERNAL
             msg = of.ofp_flow_mod()
-            msg.match.dl_type = 0x800
-            msg.priority = topo.DEFAULT_EXT_NET_RULE
-            msg.actions.append(of.ofp_action_output(port=port.port_no))
-            core.openflow.sendToDPID(msg,event.connection.dpid)
+            msg.priority = 42
+            msg.match.dl_type = 0x800 #ip
+            act = []
+            act.append(of.ofp_action_output(port=port.port_no))
+            act.append(of.ofp_action_output(port=of.OFPP_CONTROLLER))
+            msg.actions = act
+            core.openflow.sendToDPID(event.connection.dpid, msg) #switch i-esimo
+
+
             #add the link to the external
             #topo.add_link(event.dpid,port.port_no,topo.hosts[0].ip,port.port_no)
             #all ip_dst == external through port
@@ -287,9 +299,9 @@ def _handle_ip_packet(event):
     log.debug("src=%s dst = %s",ip_src , ip_dst)
 
     log.debug("%s is logged",ip_src)
-    print topo.hosts
-    print ("=======")
-    print topo.ip_to_switch
+    # print topo.hosts
+    # print ("=======")
+    # print topo.ip_to_switch
 
     # h0=topo.hosts[0]
     # if h0.switch is not None:
@@ -342,7 +354,7 @@ def _show_topo():
         counter = 1
     else:
         counter = counter + 1
-        # counter=1
+    counter=1
     job_for_another_core = multiprocessing.Process(target=topo.save_graph(counter),args=()) #chiama la funzione save_graph in un processo separato
     job_for_another_core.start()
 
@@ -366,7 +378,7 @@ def launch(__INSTANCE__=None, **kw):
             # print("parsing mac addr")
             log.debug("parsing mac address")
             if len(v) == 17 : # "00:11:22:33:44:55:66" is the mac address form
-                topo.Host(None,None,ipAddr=IPAddr("192.168.10.254",24),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
+                topo.Host(None,None,ipAddr=IPAddr("192.168.11.8",24),macAddr=EthAddr(v)) # same mac as the port. the ip is a special one. There is no dpid yet
                 # topo.hosts.append(h) # add the host as the first one
                 # print("added ext host" )
                 hasGateway=True
