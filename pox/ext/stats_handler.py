@@ -151,9 +151,10 @@ def _setPktLoss(stat,dpid):
     #get the link connection for a switch/port and update the weight
     for i,PER in enumerate(pErrRate):
         try: #there isn't a link yet
-            dpid2=myTopo.switch[dpid].port_dpid[i+1] # get the dpid connected to that port
+            dpid2=myTopo.switch[dpid].port_dpid[i] # get the dpid connected to that port
             myTopo.link_pck_err(dpid,dpid2,PER) # Update the packet error rate
         except:
+            log.debug("no link on port i")
             pass;
 
 # def _setLinkLoad(stat,dpid):
@@ -180,7 +181,7 @@ def  _setAvgPktSize(stat,dpid):
             #the node is in gaming mode
             avgPktS=port["rxB"]/port["rxPkts"]
             if(avgPktS<GAMING_THRES): #byte for packet
-                log.debug("on dpid %s there's an host who is gaming. pktSize is %.3f",dpid_to_str(dpid),avgPktS)
+                #log.debug("on dpid %s there's an host who is gaming. pktSize is %.3f",dpid_to_str(dpid),avgPktS)
                 myTopo.switch[dpid].host_gaming[port["Pnum"]] = True
                 for h in myTopo.hosts:
                     if h.ip == myTopo.switch[dpid].port_dpid[port["Pnum"]]:
@@ -200,22 +201,24 @@ def _setTraffic(flow_stat,dpid):
     for table in flow_stat: # fill the throughput of a rule for that port
         if table["actions"]>10000:
             continue
-        log.debug("*** p: %i bc: %i  ts: %i",table["actions"],table["byteCount"],table["Tsecond"])
+        # log.debug("*** p: %i bc: %i  ts: %i",table["actions"],table["byteCount"],table["Tsecond"])
         if(table["Tnanos"]==0):
             continue
         else:
             avgTrafPort += 8*10^9*table["byteCount"]/table["Tnanos"] # need a table for each rule
-            log.debug("average pkt size %.4f",100*avgTrafPort)
+            # log.debug("average pkt size %.4f",100*avgTrafPort)
     #for port,avg in avgTrafPort:
 
         dpid2=myTopo.switch[dpid].port_dpid[table["actions"]]
     #set the traffic load [0;1] 0= no traffic. 1= link is full
-
-        utilization = 100*avgTrafPort/myTopo.switch[dpid].port_capacity[table["actions"]]
-        log.debug("Link utilization is %.4f",utilization)
-        myTopo.link_load(dpid, dpid2, utilization)
-        if(utilization>TRAFFIC_THRES): #byte for packet
-            log.debug("on dpid %s there's an host who is congestioning. Throughput/Capacity=%.3f",dpid_to_str(dpid),utilization)
+        try:
+            utilization = 100*avgTrafPort/myTopo.switch[dpid].port_capacity[table["actions"]]
+            # log.debug("Link utilization is %.4f",utilization)
+            myTopo.link_load(dpid, dpid2, utilization)
+        except:
+            utilization = 0.5
+        # if(utilization>TRAFFIC_THRES): #byte for packet
+            # log.debug("on dpid %s there's an host who is congestioning. Throughput/Capacity=%.3f",dpid_to_str(dpid),utilization)
         myTopo.switch[dpid].host_traffic[table["actions"]] = True
         for h in myTopo.hosts:
             if h.ip == myTopo.switch[dpid].port_dpid[table["actions"]]:

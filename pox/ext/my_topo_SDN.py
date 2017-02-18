@@ -46,8 +46,6 @@ def add_host(dpid, mac, port, ip):
     """
     add host on the graph and the port of switch
     """
-    #devo aggiungere le porte allo switch
-    #da finire
     if switch.has_key(dpid): #se switch e' presente
         switch[dpid].add_host(mac, port, ip)
         mac_to_ip[mac] = ip
@@ -57,7 +55,6 @@ def add_host(dpid, mac, port, ip):
         pck_error_min_gf.add_node(ip)
         capacity_gf.add_node(ip)
         load_gf.add_node(ip)
-
         grafo.add_edge(dpid, ip)
         pck_error_min_gf.add_edge(dpid, ip, weight=0)
         pck_error_max_gf.add_edge(dpid, ip, weight=0)
@@ -67,30 +64,11 @@ def add_host(dpid, mac, port, ip):
     else:
         log.warning("Add host to switch that don't exist")
 
-        # msg = of.ofp_flow_mod()
-        # msg.dl_type = 0x800
-        # msg.match.dl_dst = mac
-        # # msg.match.nw_dst = IPAddr(ip,24)
-        # msg.actions.append(of.ofp_action_output(port=port))
-        # core.openflow.sendToDPID(dpid,msg)
-        #
-        # msg = of.ofp_flow_mod()
-        # msg.match.dl_dst = mac
-        # msg.dl_type = 0x806
-        # msg.actions.append(of.ofp_action_output(port=port))
-        # core.openflow.sendToDPID(dpid,msg)
-
 def add_switch(dpid):
     """
     Add a switch if it wasn't already added
     """
-    # global grafo
-    # global pck_error_min_gf
-    # global pck_error_max_gf
-    # global capacity_gf
-    # global delay_gf
-    # global switch_gf
-    # global load_gf
+
     if switch.has_key(dpid):
         pass
     else:
@@ -124,48 +102,47 @@ def rm_switch(dpid):
 
 def save_graph(counter):
 
-# def save_graph(counter):
     pos=nx.spring_layout(grafo) # positions for all nodes
     nx.draw_networkx(grafo,pos, with_labels=True, node_size=700, width=6, font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
 
-    plt.savefig("grafo%i.svg" % (counter))      #salva l'immagine
+    plt.savefig("grafo%i.png" % (counter))      #salva l'immagine
     plt.clf()                     #elimina l'immagine corrente dalla libreria
 
     edge_labels=nx.draw_networkx_edge_labels(pck_error_min_gf,pos,font_size=12)
     nx.draw_networkx(pck_error_min_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_min_gf%i.svg" % (counter))   #salva l'immagine
+    plt.savefig("pck_error_min_gf%i.png" % (counter))   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels=nx.draw_networkx_edge_labels(pck_error_max_gf,pos,font_size=12)
     nx.draw_networkx(pck_error_max_gf,pos, with_labels=True,node_color='green',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("pck_error_max_gf%i.svg" % (counter))   #salva l'immagine
+    plt.savefig("pck_error_max_gf%i.png" % (counter))   #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels2=nx.draw_networkx_edge_labels(delay_gf,pos,font_size=12)
     nx.draw_networkx(delay_gf,pos, with_labels=True,node_color='blue',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("delay_gf%i.svg" % (counter))      #salva l'immagine
+    plt.savefig("delay_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(capacity_gf,pos,font_size=12)
     nx.draw_networkx(capacity_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("capacity_gf%i.svg" % (counter))      #salva l'immagine
+    plt.savefig("capacity_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels3=nx.draw_networkx_edge_labels(switch_gf,pos,font_size=12)
     nx.draw_networkx(switch_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("switch_gf%i.svg" % (counter))      #salva l'immagine
+    plt.savefig("switch_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
     edge_labels4=nx.draw_networkx_edge_labels(load_gf,pos,font_size=12)
     nx.draw_networkx(load_gf,pos, with_labels=True,node_color='gray',node_size=700, width=6,font_size=20,font_family='sans-serif')    #stampa anche il grafo
     plt.axis('off')
-    plt.savefig("load_gf%i.svg" % (counter))      #salva l'immagine
+    plt.savefig("load_gf%i.png" % (counter))      #salva l'immagine
     plt.clf()                        #elimina l'immagine corrente dalla libreria
 
 
@@ -228,7 +205,7 @@ def link_delay(dpid1, dpid2, value):
     """
     # global delay_gf
     delay_gf[dpid1][dpid2]['weight']=value
-    log.debug("update delay with weight %.2f",delay_gf[dpid1][dpid2]['weight'])
+    #log.debug("update delay with weight %.2f",delay_gf[dpid1][dpid2]['weight'])
 
 def link_pck_error(dpid1, dpid2, value):
     """
@@ -246,7 +223,7 @@ def link_load(dpid1, dpid2, value):
     """
     # global load_gf
     load_gf[dpid1][dpid2]['weight']=value
-    log.debug("update load with weight %.2f",load_gf[dpid1][dpid2]['weight'])
+    #log.debug("update load with weight %.2f",load_gf[dpid1][dpid2]['weight'])
 
 def link_capacity(dpid1, dpid2, value):
     """
@@ -257,24 +234,18 @@ def link_capacity(dpid1, dpid2, value):
     log.debug("update capacity with weight %i",capacity_gf[dpid1][dpid2]['weight'])
 
 def get_gf(option):
-    # global grafo
-    # global pck_error_min_gf
-    # global pck_error_max_gf
-    # global capacity_gf
-    # global delay_gf
-    # global switch_gf
-    # global load_gf
+
     if option == PCK_ERROR_MIN_OPT:
-        log.debug("packet error min graph requested")
+        #log.debug("packet error min graph requested")
         return pck_error_min_gf
     elif option == PCK_ERROR_MAX_OPT:
-        log.debug("packet error min graph requested")
+        #log.debug("packet error min graph requested")
         return pck_error_max_gf
     elif option == DELAY_OPT:
-        log.debug("packet error min graph requested")
+        #log.debug("packet error min graph requested")
         return delay_gf
     elif option == DEFAULT_OPT:
-        log.debug("packet error min graph requested")
+        #log.debug("packet error min graph requested")
         return grafo
     elif option == LOAD_OPT:
         #return load_gf
@@ -283,30 +254,26 @@ def get_gf(option):
         return grafo
 
 def get_path(ip_int, ip_dst, option):
-    log.debug("get_path: ip_src=%s  ip_dst=%s",ip_int,ip_dst)
-    print get_gf(option).edges()
+    #log.debug("get_path: ip_src=%s  ip_dst=%s",ip_int,ip_dst)
     if option == DEFAULT_OPT:
-        return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_dst)
+        try:
+            return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_dst)
+        except:
+            return None
     else:
-        return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_dst) #, weight='weight')
+        try:
+            return nx.dijkstra_path(get_gf(option), source=ip_int, target=ip_dst) #, weight='weight')
+        except:
+            return None
 
 def add_path_through_gw(ip_int, ip_dst, option,isDpid=False):
 
-    if isDpid:
+    #if isDpid:
         #TODO dpid to internet
-<<<<<<< HEAD
 
-        log.debug("")
-    newPath=get_path(ip_int,hosts[0].ip,option)
-    h = [host.ip == ip_int for host in hosts ]
-    oldPath;
-=======
-        log.debug("add path through gateway")
-    # newPath=get_path(ip_int,hosts[0].ip,option)
->>>>>>> origin/andrea
+        #log.debug("add path through gateway")
     add_path(ip_int,ip_dst, option,isExt=True)
-    #devo fare in modo di riconoscere uno switch come gateway
-    #capire nella realta' come arrivano i dpid
+
 
 
 def add_path(ip_src, ip_dst, option, isExt=False):
@@ -320,11 +287,10 @@ def add_path(ip_src, ip_dst, option, isExt=False):
     else:
         newPath=get_path(ip_src,ip_dst,option)
 
-<<<<<<< HEAD
+    if newPath == None:
+        return
 
-=======
     oldPath = h.isConnected(ip_dst)
->>>>>>> origin/andrea
     if option == PCK_ERROR_MAX_OPT:
         h.addConnection(ip_dst,newPath,UDP)
     else:
@@ -364,10 +330,6 @@ def add_path(ip_src, ip_dst, option, isExt=False):
                     if oldPath[i+1] == newPath[i+1]:
                         continue
                     else: # the i+1 switch is different
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/andrea
                         msg = of.ofp_flow_mod()
                         msg.command = of.OFPFC_MODIFY
                         msg.match.nw_dst = IPAddr(str(ip_dst))
@@ -524,18 +486,11 @@ class my_Switch():
         self.host_gaming={} # if port has a gaming host, value is True
         self.host_traffic={} # if port has an host who is making a lot of traffic, here is true
 
-    #def add_host(self, mac, porta, ip):
     def add_host(self, mac , port, ip):
         "add host on the switch's port"
         h=Host(self.dpid,port,ipAddr=ip,macAddr=mac)
 
-        # if self.dpid_port.has_key(ip):
-        #     log.debug("IP still exist on the switch")
-        # else:
-        #     self.dpid_port[ip] = porta
-        #     self.port_dpid[porta] = ip
-        #     self.port_mac[porta] = mac
-        #     self.mac_port[mac] = porta
+
         self.port_dpid[port]=ip
         msg = of.ofp_flow_mod()
         msg.priority = DEFAULT_ARP_PATH
@@ -580,16 +535,9 @@ class Host():
     def addConnection(self,host,path=None, t_type=TRANSP_BOTH):
         #update timer if ip exist
         if not isinstance(host,Host):
-<<<<<<< HEAD
-
-            log.debug("TODO")
-
-            #dsth = [h in hosts if h.ip == host]
-        if(t_type == Host.TRANSP_BOTH):
-=======
             pass #TODO
         if(t_type == TRANSP_BOTH):
->>>>>>> origin/andrea
+
             if path is not None: # add both traffic
                 log.debug("adding both transport connection to the host destination")
             else:

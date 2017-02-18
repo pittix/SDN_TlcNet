@@ -55,6 +55,7 @@ def create_msg(ipsrc = "100.100.100.2", ipdst = "100.100.100.1", mac_src = "80:8
 
 def delay_discovery():
     """ aggiorna tutti i delay dei link"""
+    #log.debug("delay_discovery reload link")
     #deve ottenere una lista di link
     link = topo.switch_gf.edges() #ritorna una lista di link
     for edge in link:
@@ -85,7 +86,11 @@ def _handle_PacketIn(event):
             #log.debug("\n\ndpid= %s rtt %s", event.dpid, lista[event.dpid].av_rtt)
         elif IPAddr(ip_packet.srcip) == IPAddr('100.100.100.1'):
             #sicuramente delay msg
-            dpid2 = topo.switch[event.dpid].port_dpid[event.port]
+            try:
+                dpid2 = topo.switch[event.dpid].port_dpid[event.port]
+            except:
+                log.error("ERROR link not fount ")
+                return
             rtt1 = -1
             rtt2 = -1
             try:
@@ -135,7 +140,7 @@ class my_rtt():
         #self.av_rtt =  (self.av_rtt)*0.8 + (self.temp_rtt[ip_dst][2])*0.2
         rtt = self.temp_rtt[ip_dst][2] + self.av_rtt
         self.av_rtt = rtt/2
-        log.debug("\n\ndpid= %s rtt %s", dpid, self.av_rtt)
+        #log.debug("\n\ndpid= %s rtt %s", dpid, self.av_rtt)
 
 def launch():
     core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
