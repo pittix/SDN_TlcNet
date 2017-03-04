@@ -7,8 +7,6 @@ import my_topo_SDN as myTopo
 from pox.lib.addresses import IPAddr
 log = core.getLogger()
 
-# from enum import Enum
-# from graphUpdater import GraphUpdater
 UPD_GRAPH = 10 # every 10 seconds update the graph weight
 GAMING_THRES = 200 #bytes per packet
 TRAFFIC_THRES = 0.8 #

@@ -17,10 +17,10 @@ log = core.getLogger()
 lista = {} #lista dpid rtt
 
 def init_lista():
+    """ insert my_topo's dpid on lista """
     ls = topo.switch.keys() #lista chiavi dpid della my topo
     for i in range (0, len(ls)):
         lista[ls[i]] = my_rtt(ls[i]) #assegno un oggetto rtt ad ogni dpid
-    #log.debug(lista)
 
 def get_rtt():
     """deve aggiornare tutti gli rtt"""
@@ -36,8 +36,6 @@ def send_msg(dpid):
     msg = create_msg(ipdst = ip_dst)
     core.openflow.sendToDPID(dpid, msg)
     lista[dpid].add_rtt(identity)
-
-    #ciaop pino
 
 def create_msg(ipsrc = "100.100.100.2", ipdst = "100.100.100.1", mac_src = "80:80:80:80:80:80", mac_dst = "50:50:50:50:50:50", port = of.OFPP_CONTROLLER):
     ipv4_pck = pkt.ipv4()
@@ -63,7 +61,7 @@ def delay_discovery():
 
 def get_delay(dpid1, dpid2):
     out_port = topo.switch[dpid1].dpid_port[dpid2] #porta del dpid1 a cui e' collegato il dpid2
-    ip_dst = "100.%d.%d.%d" % (random.randint(0,250),random.randint(0,250), random.randint(0,250)) #docro' crearlo univoco
+    ip_dst = "100.%d.%d.%d" % (random.randint(0,250),random.randint(0,250), random.randint(0,250))
     identity = IPAddr(ip_dst)
     msg = create_msg(ipsrc = "100.100.100.1", ipdst = ip_dst, port = out_port)
     core.openflow.sendToDPID(dpid1, msg)
@@ -98,9 +96,14 @@ def _handle_PacketIn(event):
                 rtt2 = lista[dpid2].av_rtt
             except:
                 pass
-            if ((rtt1 != -1) and (rtt2 != -1)):
-                delay = lista[event.dpid].update_delay(ip_dst, time) - rtt1/2 -rtt2/2
-                topo.link_delay(event.dpid, dpid2 , delay)
+            if ((rtt1 != -1) and (rtt2 != -1) and (rtt1 < 10) and (rtt2 < 10) ):
+                delay = lista[event.dpid].update_delay(ip_dst, time)
+                log.debug("rtt1 %s, rtt1/2 %s, rtt2 %s", rtt1, rtt1/2, rtt2)
+                x = 40
+                if (delay > 0):
+                    value = ( (topo.delay_gf[event.dpid][dpid2]['weight'])*(100-x) + delay*x )/100  - rtt1 -rtt2
+                    topo.link_delay(event.dpid, dpid2 , value)
+                    #log.debug("peso: %s",  topo.delay_gf[event.dpid][dpid2]['weight'])
 
 
 
@@ -124,12 +127,14 @@ class my_rtt():
         self.temp_rtt[ide]  = [datetime.now(), -1, -1] #start, end, rtt in ms
 
     def add_delay(self, ide):
+        log.debug("link_delay %s", self.link_delay)
+        if len(self.link_delay) > 5: #test
+            self.link_delay = {}     #test
         self.link_delay[ide] = [datetime.now(), -1]
 
     def update_delay(self, ide, time):
         self.link_delay[ide][1] = time
-        c = (((self.link_delay[ide][1]) - (self.link_delay[ide][0])).microseconds)/1000
-        return c
+        return (((self.link_delay[ide][1]) - (self.link_delay[ide][0])).microseconds)/1000
 
     def update_rtt(self, ide, time):
         self.temp_rtt[ide][1] = time
@@ -140,11 +145,9 @@ class my_rtt():
         #self.av_rtt =  (self.av_rtt)*0.8 + (self.temp_rtt[ip_dst][2])*0.2
         rtt = self.temp_rtt[ip_dst][2] + self.av_rtt
         self.av_rtt = rtt/2
-        #log.debug("\n\ndpid= %s rtt %s", dpid, self.av_rtt)
 
 def launch():
     core.openflow.addListenerByName("PacketIn", _handle_PacketIn)
     Timer(7, init_lista, recurring=False) #inizializza la lista e il programma
-    #Timer(2, verify_list_consistence, recurring=True) #every 2 seconds execute _show_topo
     Timer(8, get_rtt, recurring=True) #aggiorna tutti gli rtt
     Timer(10, delay_discovery, recurring=True) #aggiorna tutti i delay dei link del grafo

@@ -39,9 +39,7 @@ import my_topo_SDN as topo #new class
 import graphUpdater as gu
 log = core.getLogger()
 
-# SDN_network = "10.0.0.0/24"
-# SDN_NETMASK = "255.255.255.0"
-SDN_network = ""#"192.168.0.0/16"
+SDN_network = ""
 
 PCK_ERROR_OPT = 1
 DELAY_OPT     = 2
@@ -56,15 +54,14 @@ recent_packets = []
 counter = None
 
 def _addCapacity():
-    # print unknown_link
     if len(unknown_link)<1:
         return;
     for l in topo.grafo.edges():
         for i,c in enumerate(unknown_link):
-            log.debug("going on unknown_link")
+            #log.debug("going on unknown_link")
             if c[0] == l[0]:
                 try:
-                    log.debug("inside first try")
+                    #log.debug("inside first try")
                     dpid2 = switch[c[0]].port_dpid[c[1]]
                     topo.link_capacity(c[0],dpid2, c[2])
                     topo.switch[dpid].port_capacity[c[1]] = c[2]
@@ -74,7 +71,7 @@ def _addCapacity():
                     break # doesn't have the other link yet
             elif c[0] == l[1]:
                 try:
-                    log.debug("inside second try")
+                    #log.debug("inside second try")
                     dpid2 = switch[c[0]].port_dpid[c[1]]
                     topo.link_capacity(c[0],dpid2, c[2])
                     topo.switch[dpid].port_capacity[c[1]] = c[2]
@@ -84,8 +81,6 @@ def _addCapacity():
                     break # doesn't have the other link yet
             else:
                 continue
-
-
 
 def _handle_LinkEvent(event):
     """
@@ -98,9 +93,8 @@ def _handle_LinkEvent(event):
     elif event.removed:
         log.debug('LinkRemoved dpid1: {0} porta {1}, dpid2: {2} porta {3}'.format(l.dpid1, l.port1, l.dpid2, l.port2))
         topo.rm_link(l.dpid1, l.port1, l.dpid2, l.port2)
-    #if there's a link, the controller knows the link between switches
 
-def _handle_ConnectionUp (event): #capire se nella pratica si logga anche lo switch legacy
+def _handle_ConnectionUp (event):
     """
     handle connection up from switch
     """

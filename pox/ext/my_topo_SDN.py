@@ -84,13 +84,6 @@ def add_switch(dpid):
         log.debug("Add switch: %s", dpid_to_str(dpid))
         add_default_rules(dpid)
 def rm_switch(dpid):
-    # global grafo
-    # global pck_error_min_gf
-    # global pck_error_max_gf
-    # global capacity_gf
-    # global delay_gf
-    # global switch_gf
-    # global load_gf
     grafo.remove_node(dpid)
     pck_error_min_gf.remove_node(dpid)
     pck_error_max_gf.remove_node(dpid)
@@ -203,9 +196,7 @@ def link_delay(dpid1, dpid2, value):
     """
     modifica il peso del link del grafo delay_gf
     """
-    # global delay_gf
     delay_gf[dpid1][dpid2]['weight']=value
-    #log.debug("update delay with weight %.2f",delay_gf[dpid1][dpid2]['weight'])
 
 def link_pck_error(dpid1, dpid2, value):
     """

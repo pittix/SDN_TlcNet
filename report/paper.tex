@@ -79,227 +79,145 @@
 \maketitle
 
 \begin{abstract}
-In this paper we present an application of the Software Defined Networks, focusing on the integration of the actual network with the SDN one.
-We will show how it's possible to implement a QoS mechanism to keep the network up and to grant the users the possibility of using it outside
-a laboratory.
+Quality of Service(QoS) in existing network architectures is an ongoing problem.
+A lot of researcher and industries try to solve this problem with many solution but a lot of them are too 
+expensive other failed or are not implemented.
+Software Defined Networking(SDN) paradigm has emerged in response to limitations of traditional networking architectures.
+The main advantages of SDN are centralized global network view. This particular features have got attention of researchers to improve QoS.
+In questo report mostreremo quali sono stati i principali risutati raggiunti e i problemi incontrati nella realizzazione di 
+un applicativo SDN in grado di supportare un servizio di tipo QoS.
+Lo standard OpenFlow e il controller python POX largamente diffuso sono stati gli strumenti che hanno reso possibile la
+realizzazione di quest'esperienza pur mostrando i limiti dovuti all'utilizzo di una tecnologia nuova e in fase di ricerca.
+%translate
 \end{abstract}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}\label{sec:intro}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The \textit{\textbf{SDN}, Software Defined Network} is a new approach to create a network of computer and networks, which is based on the
-most famous OpenFlow protocol. The key concepts of this type of networks are the hierarchy, the flow control and the statistics.
-The hierarchy allows a network administrator to set up a controller which will choose how to make the network evolve setting up
-how the routing will switch the traffic and doing so, how the single switch will behave.
-The flow control is done by the controller that, running the algorithm the network administrator created, choose the path for a
-type of traffic that occurs between a source and a destinaion host.
-The most important and interesting thing about those type of networks is the statistics: every switching unit collects data from its
-interfaces (e.g. the number of packets going in or out through a specific port or interface). This allow the controller to instantly
-how the network is evolving and, if necessary, switch a traffic from congestioned links to other that, in that moment, are almost fully loaded.
-Exploiting the statistic capabilities is the key to manage wisely a network and, since there aren't many papers about these potentialities,
-we decided to focus on that. In this paper we will show how we handled the contemporary traffic between multiple host, both inside SDN network
-and between the SDN one and the external internet. Starting from traffic analysis and going through the SDN state of the art, we implemented some function
-to exploit better the SDN POX controller and we reach the end of this paper showing how we found three different types of traffic and
-for each one, we provided different metrics and different path to optimize the load. We realized the controller using POX, a python-based controller
-and we tested it with the switches that were provided us in the Communication Networks Lab at DEI.
-\subsection{Known Limitations}
-SDN networks are known to be underperforming with low traffic, which means that if nodes tries to connect with each other
-to exchange little traffic, the network will have a higher delay and will perform worst than a
-traditional network. We tried to reduce this underperformance with the usage of the wildcards:
-Every rule needs at least the source ip or the destination ip. If one of them is in a network
-(e.g. the internet traffic is in the network 0.0.0.0/0 excluded 192.168.10.0/24 ),
-we can redirect all the traffic from an internal host to the internet with a predefined
-path. This means that only one PacketIn will be sent to the controller if a host is surfing the network.
+Software-defined networking (SDN) is way to manage networks that separates the control plane from the forwarding plane. 
+SDN offers a centralized view of the network, giving an SDN Controller the ability to act as the “brains” of the network. 
+The SDN Controller relays information to switches and routers via southbound APIs, and to the applications with northbound APIs. 
+One of the most well-known protocols used by SDN Controllers is OpenFlow, however, it isn’t the only SDN standard, but it is widely accepted.
+Centralized, programmable SDN environments can easily adjust to the rapidly changing needs of businesses. SDN can lower costs and limit
+wasteful provisioning, as well as provide flexibility and innovation for networks.
+\#TODO da completare 
+  \subsection{OpenFlow}
+  During 2006 thanks to M. Casado was developed Ethane a new network architecture on this conncept during 2011 was bord the Open Network Foundatin.
+  This is a no profit association that would innovate SDN and standardize OpenFlow protocol whit relatives tecnology \cite{ONF}.
+  The first version of OpenFlow is 1.0.0 release on 2009 but the last standardized version is v1.5.1 approved on march 2015 \cite{ONF_report}.
+  \#TODO da sistemare
+  \subsection{The state of the art}
+  \#TODO stato dell arte e paper di riferimento  matteo
 
-Another limitation is the no default routing from a source to a destination: when an host
-is plugged to a network of SDN switches, it won't know the destinatio. The only way it can
-discover the host is by flooding the network with that packet, but this makes each switch raise a PacketIn message to the controller
-slowing down the startup of the connection. This thing doesn't happen with traditional routing, because each router knows
-the network disposition, but doesn't know each host how much traffic is doing. For that the administrator need to put a firewall.
-The last one isn't needed, as the controller can set a switch to drop all the packets from/to a destination.
-
-\subsection{Openflow 1.0 messages}
-Openflow defines a number of messages between a controller and a switch. Now there will be presented some messages we exploited:
-\begin{itemize}
-	\item[Hello] This message is sent both from the controller and the switch who is looking for a controller after it
-	is turned on. If the switch sent the message, the controller, after receiving it, will send the FeatureReq packet to that switch.
-	\item[FeatureReq] this is the message that the controller sends to a switch to know its abilities. The switch
-	respond with a FeatureRes and when this last message reaches the pox controller, the ConnectionUp event is raised.
-	With the featureRes the controller will know how many ports a switch has and their properties (e.g. if they are connected, link speed,...), the flow table capabilities and the supported statistics.
-	\item[PortStatus] this message is sent from a switch to the controller, to notify that some ports has changed their status.
-		It's useful to check if a port has someone connected
-	\item[StatsReq] The controller will send this message to request the statistics. The payload of the message contains the type of statistic the controller want to know.
-		The switch then will answer with the Stats reply, if it supports that type of stat. It will send a Bad_Request message if not.
-		\item[PacketIn] This message is sent from the switch to the controller whenever a packet arrives and it doesn't match
-		any rule. The controller can decide to ignore that type of message, insert this message in a PacketOut message, or set
-		a flow rule for packets like this using a FlowMod.
-		\item[PacketOut] This message is sent from the controller to forward a packet, which is the payload of the PacketOut message, to some
-		port(s).
-		\item[FlowMod] This message set, delete or modify a rule inside a switch. Is the message that allows routing.
-\end{itemize}
-
-\begin{itemize}
-	\item What are we talking about: description of the addressed problem. - done
-\item Motivation: why the problem is important. done
-\item Novelty: how you contribute to advance the state of the art. done
-\item Results: summary of the main findings  done
-\end{itemize}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Related Work}\label{sec:sota}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-A good introduction about the SDN can be the  "Simulation in an SDN network scenario using the
-POX Controller" where has been presented the SDN environment and the mininet simulation
-tool that creates a topology where to simulate the switches, the traffic between hosts and
-allow the controller to communicate with the switches. The work presented in
-"Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad [put cit]
-has been implemented to improve the controller speed and efficiency as it make it more reactive.
-The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found
-in the paper called "Getting traffic statistics from network devices in an
-SDN environment using OpenFlow" by D.J. Hamad \& others. [ put note here]
-For traffic analysis we haven't found any paper describing the characteristics of
-some types of flows, so we used our PCs to sniff the traffic. Traffic analysis will be discussed in section \ref{sec:symo}.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%parte scritta da Matteo da tradure e forse da spostare
-%\section{Controller Implementation}\label{sec:Implementation}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%We developed a Pox based controller using Python2.
-%The main function that we need and that we had developed are:
-%\begin{itemize}
-% \item Gloal knowledg of our network topology with link performance metrics
-% \item Ensure host to host connectivity and external networ reachability using different performance path
-% \item Proces packetIn request
-%\end{itemize}
-
-%\subsection{Network topology}
-%To storage our network topology we use a specific python library called \emph{NetworkX} this library 
-%\url{https://networkx.github.io/}
-%give us the possibility
-%to create a graph. We have create this graph with two types of nodes: Switch and Hosts, all of them connected with link.
-%For now we use a single-edge graph but a real application have to use double-edge graph in orther to measure both link's performances.
-%\newline There is a principal function implemented by Pox called dyscovery.py that give us the event regarding ( check ) host, switch
-%and link connection/disconnection so handling this event we can build our graph step-by-step.
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{System Model}\label{sec:symo}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-(The System model is a description of your operating assumptions with related motivation and justification)
-
-
-We developed a controller that can handle a mesh network, which has loops, that avoid
-the traffic flooding. The controller stores the switch and the connection between them;
-knows which hosts are connected to each switch port, with the hypothesys that only one
-host is connected at each port, unless the port is the one connected to the internet.
-With the use of the statistics, the controller get the status of the network and, if necessary,
-tries to adjust the traffic and put in the link with the higher path loss the torrent traffic,
-make the connection between two gaming host the one with less delay and tries to redistribute all the traffic in a way
-such that all the nodes have an average throughput as lowest as possible.
-
-
-\subsection{Traffic analysis}\label{sec:traf}
-We used laptop connected via
-GigabitEthernet interface and Ethernet cable cat.5a to receive the traffic from the destination host.
-Our laptop has been connected via Wi-Fi to our access point via protocol 802.11n.
-No other traffic sources were active during the testing, so the router was handling only
-the traffic from laptop when sniffing traffic. The connection used was an ADSL2+ via copper.
-We did 3 type of traffic analysis: Gaming traffic, Skype® and torrent traffic. We analyzed
-\#Mb for the gaming traffic, \#Mb for the VoIP traffic and 3GB for the torrent traffic.
-The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP)
-
-The traffic analysis of the torrent protocol shows that the average packet size is the MTU
-(i.e. 1500bytes) and the protocol tryies to exploit all the channel capabilities. The traffic
-is made via UDP packets with the port range in the ephimeral ports (2000_- 65535).
-Moreover, the node is linked to a lot of IPs with multiple connection: this means that
-if someone wants to find a p2p traffic, it can look to the statistics and see if the traffic is loading all the channel,
-to how many IPs, an host is connected to and if it uses UDP.
-For the VoIP we saw that the protocol uses UDP and the traffic, after a transition time, goes only between two hosts.
-The average packet size is the MTU and the protocol tryies to exploit all the channel for a better QoE.
-On another test, we tried the VoIP while a download was ongoing, and we saw that the quality
-decreased to allow communication. The traffic is between the UDP port 80 \#\#TODO\#\# TOCHECK \#\#
-
-The last traffic analysis we made was with a DOTA[explain what it is] web match.
-We saw that for that type of gaming session, the packet size is about \# bytes and involves both TCP and UDP ports.
-
-\section{Statistics}
-The analysis on the traffic presented in sec \ref{sec:traf} was used to get useful information to the graph and allow
-a wise usage of the network. When the switch connects, the each port gives it's capabilities, so these has been used to
-find the utilization of the link and act a change on the path for some links. We choose to assign a bad link
-to nodes that connect with many other nodes and that generates a lot of traffic. When a link is found to be utilized more of half the
-capacity and other links are less utilized, the path of some traffic has been changed to equally distribute the traffic.
-For the p2p traffic, as shown in paper TODO ref!!** the torrent traffic must not be changed very often, as
-the protocol itself tryies to find different path to reach a destination. This type of traffic, instead, uses the path
-where the packet error rate, calculated with the port statistics, is higher. How the path error rate has been calculated
-can be found in \ref{sec:calculations}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Results}\label{sec:res}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-The Results section contains a selection of the most relevant results with the explanation of their meaning. Please, not that you do NOT have to describe the shape of the curves that can be seen in the figures, but the reasons WHY such curves have that shape!
-\subsection{The ARP packets}
-During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
-This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
-HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
-hiher the collision range. The bridges limits their collision range to the port. With openflow each switching unit can
-act as a bridge or as a router. In both cases analyses the header of the L2 packet L3 packet and some of the L4 header.
-If it has the rule to forward the packet, it will act as declared in the most specific matching rule. Otherwise it will
-send to the controller a PacketIn and the controller will act as programmed. If an host want to communicate to another host whithin
-the network, it sends the packet to the line and then the switch will check in its tables and execute the actions of the match found.
-For an IP network, it will check the path to reach a destination and then send to the defined output port. The mac address in this case
-became useless, as the connection is point to point. So, knowing the destination layer2 address is useless as the switch can act
-regardless of it. The only thing the switch need to know is the layer2, layer 3 addresses and, at most, the layer 4 address.
-This can be seen by a reader as a violation of the layers in the ISO/OSI stack, but to exploit the potentials of the SDN approach,
-this is necessary. TODO explain why TODO!!!!**
-
-\subsection{The Gateway}
-The computers don't need anymore to set a gateway to reach another network as the controller and the switches will redirect the traffic
-properly, according to the rules set by the first. The controller must only know which switch ports are connected to the
-internet and then add them to the path. in this way, the controller can set a path to reach it and provide connectivity with
-a traffic shaping policy and/or differentiate the traffic from and to different networks. 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Needs and Gools}\label{sec:obb} %obbiettivi ed esigenze controllare 
+The main gool of this experience is to obtain statistics on realtime traffic in order to reroute traffic based on QoS or other reasons. 
+%correggere
+  \subsection{Adaptability of the network}
+  Made Network Adaptable means poter dirottare il traffico in real time to ensura a lot of demands. For example we have to avoid link congestion, 
+  but we can prefer reroute some hosting traffic to peggiorare it's performance because of it's evil traffic.
+  To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a 
+  global scope.
+  The performance of a single connection and entire network can ensure various type of metrics.
+  In order to assicurare queste ci serve una struttura dati che si aggiorna costantemente nella quale immagazzinare le statistiche dei link 
+  in modo all'occorrenza di trovare il percordo migliore per ogni singolo flusso dati.
+  \#TODO MATTEO
+  \subsection{Exterior comunication}
+  \#TODO pitt
+  
+\section{Instrument}\label{sec:instrument}
+\#TODO matteo
+  \subsection{Controller}
+  The controller that we use is POX, it's repository is at this link \url{https://github.com/noxrepo/pox}. 
+  POX is an opensource python controller, it is an evolution of NOX a controller developed on C language.
+  The documentation about the progect is present at this link \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}.
+  The only problem to use this controller is that it support only the first version of OpenFlow1.0.
+  
+  The controller run inside a VirtualMachine on our personal computer, offered by SDN hub \cite{VM}. This VM use UBUNTU like OS and version 2.7.6 of
+  Python that is sufficient for POX that's required version 2.7.
+  % \#TODO matteo da correggere e completare
+  \subsection{Router Board}
+  The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualize an OpenFlow switch that support 
+  OpenFlow v1.0. The main caraptheristics is that it has only 5 ethernet port this is a limitation because consider that one of this port it is 
+  used to connect conntroller and with other port we have made host and other routerboard connection.
+  
+  %\#TODO matteo ( parlare del firmware utilizzato nella routerboard) correggere e completare
+  
+\section{Results}\label{sec:results}
+\#TODO %qui non so se serve un'introduzione o meno
+  \subsection{Graph and Network structures}
+  In order to achieve the realtime adaptability and statistics storage we have develop ad-hoc structure.
+  We use a specific python library called NetworkX \cite{networkx} to create a graph in witch we can storage ad-hoc node that represent 
+  resplectively switch or host element.
+  This topological structure is updated realtime thanks to connection event and link discover offered by various library. 
+  ( mettere i vari eventi che sfrutto )
+  The link besides have many parameters in witch we can save network performance. To update every link parameter we have to creat ad hoc function 
+  because there isn't some function constructed yet. ( sistemare frase) .
+  This type of structure allow us to run Dijkstra algorithm that return the minimum path ( in base a vari parametri ) on a nlog n time ( verificare).
+  (aggiungere qualcosa e correggere)
+  \#TODO matteo
+  
+  \subsection{Traffics analisis}
+  For every networks performance we have tryed to develop a specific solution. The OpenFlow main goal is to centralize controll and software
+  complexity so the routerboard can made only some easy function in orther to contain the hardware complexity and mantainly a good speed.
+  Il che ha portato a dover utilizzare stratagemmi.
+  \#TODO %riformulare
+    \subsubsection{Delay}
+    Per molte applicazioni odierne il delay e' un parametro importantissimo. 
+    La rete attuale puo' conoscere il delay di un link semplicemente inviando un pachetto ICMP di tipo TimeStamp ( verificare ) 
+    supportato dal protocollo openflow, questo permette di ottenere una precisione nell'ordine dei microsecondi ( verificare ).
+    
+    
+    \#TODO MATTEO
+    \subsubsection{Trougthput}
+    \#TODO andrea
+    \subsubsection{Link Capacity}
+    \#TODO andrea
+    \subsubsection{altre}
+    \#TODO andrea
+    
+  \subsection{Route changing} %cambio rotte
+  \#TODO andrea
+  
+  \subsection{ARP solution} %TODO questione dell'arp inutile
+  During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
+  This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
+  HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
+  hiher the collision range. The bridges limits their collision range to the port. With openflow each switching unit can
+  act as a bridge or as a router. In both cases analyses the header of the L2 packet L3 packet and some of the L4 header.
+  If it has the rule to forward the packet, it will act as declared in the most specific matching rule. Otherwise it will
+  send to the controller a PacketIn and the controller will act as programmed. If an host want to communicate to another host whithin
+  the network, it sends the packet to the line and then the switch will check in its tables and execute the actions of the match found.
+  For an IP network, it will check the path to reach a destination and then send to the defined output port. The mac address in this case
+  became useless, as the connection is point to point. So, knowing the destination layer2 address is useless as the switch can act
+  regardless of it. The only thing the switch need to know is the layer2, layer 3 addresses and, at most, the layer 4 address.
+  This can be seen by a reader as a violation of the layers in the ISO/OSI stack, but to exploit the potentials of the SDN approach,
+  this is necessary. TODO explain why TODO!!!!**
+  \#TODO andrea
+  
+  \subsection{Default Gw problem} 
+  The computers don't need anymore to set a gateway to reach another network as the controller and the switches will redirect the traffic
+  properly, according to the rules set by the first. The controller must only know which switch ports are connected to the
+  internet and then add them to the path. in this way, the controller can set a path to reach it and provide connectivity with
+  a traffic shaping policy and/or differentiate the traffic from and to different networks. 
+  \#TODO andrea
+  
+  \subsection{Ip switching in pox}
+  \#TODO andrea
+  
 \section{Conclusions}\label{sec:conclusion}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%da vedere come distribuire
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\chapter{matteo}
+\#TODO
+  
 
-\section{Program structure}
-
-On our controller in orther two offer principals function we have two storage two principal things: the logical topology of the SDN network and the 
-proprirty of every nodes.
-
-\subsection{Topology}
-E' necessario memorizzare la topologia della rete in una struttura dati che permetta la facile ricerca di cammini minimi tra due host. 
-Abbiamo utilizzato quindi una struttura a grafo semplice in cui i nodi interni sono gli switch e le foglie sono gli host della nostra rete.
-Nella realtà le connessioni logiche tra due switch possono prevedere più di un link fisico che può essere mono o bdirezionale.
-Nel nostro sistema abbiamo preferito rappresentare la connessione tra due switch con un unico edge bidirezionale, da cui poi è facilmente estendibile
-in vista di un' applicazione pratica.
-
-Per gestire il grafo viene utilizzata la libreria scritta in python NeworkX
-
-The scope of our structure is storage the logically connection of network's nodes in orther to quikly discovery the minimum path 
-
-\subsection{Network knowledge}\label{sec:topo}
-Our controller program need to know SDN all network topology in orther to guided ( instradare ) the packet along a better path or along a path to ensure 
-a better ( funzionamento ) on SDN network.
-We use two type of date structur:
-\begin{itemize}
- \item \emph{Switch and Node}, we create ad-hoc object to save the main information of every single Node and Switch. Inside switch opject there are many 
- dictionary that ( permettono ) to find quikly port to switch association, ip to port association and other. [da sistemare con piu' precisione]
- \item \emph{Logically connection} to have a complete knowledg of the topology we use graph structured, despitly ( diversamente ) reality in
- whitch  double-edge used we use single-edge graph to avoid evil implementation difficult that esule our aim. The NetworkX python library give as method
- to create a graph in witch every node is a pointer to real Host or Switch object and the link conceptually have various metrics attribute.
- ``Conceptually'' because NetworkX library don't give us the possibility to save more than one single weight attribute for each link, so 
- we need to mantain multy graph, each of every metrics used with the same topology atribute but different weigth on theyr links.
-\end{itemize}
-
-
+\begin{thebibliography}{99}
+	\bibitem{pox} POX \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}
+	\bibitem{openflow} OpenFlow \url{http://flowgrammable.org/sdn/openflow/}
+	\bibitem{pox_repo} POX's repository \url{https://github.com/noxrepo/pox}
+	\bibitem{VM} Virtual Machine \url{http://sdnhub.org/tutorials/pox/}
+	\bibitem{router_board} Router Board \url{https://www.senetic.it/product/RB450G}
+	\bibitem{netoworkx} NetworkX python's library \url{https://networkx.github.io/}
+	\bibitem{ONF} Open Networking Foundation \url{https://www.opennetworking.org/sdn-resources/technical-library}
+	\bibitem{ONF_report} v1.5.1 OpenFlow report \url{https://www.opennetworking.org/sdn-resources/technical-library}
+	
+\end{thebibliography}
 
 \end{document}
