@@ -108,10 +108,13 @@ wasteful provisioning, as well as provide flexibility and innovation for network
   \#TODO stato dell arte e paper di riferimento  matteo
 
 \section{Needs and Gools}\label{sec:obb} %obbiettivi ed esigenze controllare 
-The main gool of this experience is to obtain statistics on realtime traffic in order to reroute traffic based on QoS or other reasons. 
+The main gool of this experience is to develop a small SDN network in a lab with real hardware
+in orther to understood come a livello pratico si possa implementare  a QoS service in a SDN scenarois.
+Our network have to manage traffic with a global scope, in order to evolve in base on different parameters.
+Inoltre the SDN network need to interact with world wide web efficently.
 %correggere
   \subsection{Adaptability of the network}
-  Made Network Adaptable means poter dirottare il traffico in real time to ensura a lot of demands. For example we have to avoid link congestion, 
+  Made Network Adaptable means poter dirottare il traffico in real time to ensure a lot of demands. For example we have to avoid link congestion, 
   but we can prefer reroute some hosting traffic to peggiorare it's performance because of it's evil traffic.
   To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a 
   global scope.
@@ -125,20 +128,34 @@ The main gool of this experience is to obtain statistics on realtime traffic in 
 \section{Instrument}\label{sec:instrument}
 \#TODO matteo
   \subsection{Controller}
-  The controller that we use is POX, it's repository is at this link \url{https://github.com/noxrepo/pox}. 
-  POX is an opensource python controller, it is an evolution of NOX a controller developed on C language.
-  The documentation about the progect is present at this link \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}.
+  The controller that we use is POX, the software is opensource and it is write with Python, it is based on SDN and support OpenFlow.
+  The software use the version 2.7 of Python.
+  It's repository is at this link \url{https://github.com/noxrepo/pox} and a lot of documentation about the progect 
+  is present at this link \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}.
   The only problem to use this controller is that it support only the first version of OpenFlow1.0.
-  
-  The controller run inside a VirtualMachine on our personal computer, offered by SDN hub \cite{VM}. This VM use UBUNTU like OS and version 2.7.6 of
-  Python that is sufficient for POX that's required version 2.7.
+  \\
+  The controller run inside a VirtualMachine on our personal computer, 
+  the VM is offered by SDN hub on this site: \url{http://sdnhub.org/tutorials/sdn-tutorial-vm/}. 
+  This VM is a 64-bit Ubuntu 14.04 that has a number of SDN software and tools installed.
   % \#TODO matteo da correggere e completare
   \subsection{Router Board}
   The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualize an OpenFlow switch that support 
-  OpenFlow v1.0. The main caraptheristics is that it has only 5 ethernet port this is a limitation because consider that one of this port it is 
+  OpenFlow v1.0\cite{routerboard_doc}. 
+  \begin{itemize}
+   \item CPU		AR7161 680MHz
+   \item Memory		256MB DDR SDRAM onboard memory
+   \item Data storage	512MB onboard NAND memory chip, microSD card slot (on reverse)
+   \item Ethernet 	Three 10/100/1000 Mbit/s Gigabit Ethernet ports supporting Auto-MDI/X
+   \item Serial port 	One DB9 RS232C asynchronous serial port
+  \end{itemize}
+  \textbf{firmware} the current version is: '' da gercare col comando: system routerboard print ''
+  \newline
+  The \textbf{Operating System} that they use is MikroTik RouterOS ( cercare la versione installata) \cite{routeboard_software}.
+  \newline
+  One limitation of this routerboard is that it has only 5 ethernet port this is a limitation because consider that one of this port it is 
   used to connect conntroller and with other port we have made host and other routerboard connection.
   
-  %\#TODO matteo ( parlare del firmware utilizzato nella routerboard) correggere e completare
+  %correggere e completare Matteo
   
 \section{Results}\label{sec:results}
 \#TODO %qui non so se serve un'introduzione o meno
@@ -217,7 +234,8 @@ Conclusions are a superbrief summary of what has been done and highlighting of t
 	\bibitem{netoworkx} NetworkX python's library \url{https://networkx.github.io/}
 	\bibitem{ONF} Open Networking Foundation \url{https://www.opennetworking.org/sdn-resources/technical-library}
 	\bibitem{ONF_report} v1.5.1 OpenFlow report \url{https://www.opennetworking.org/sdn-resources/technical-library}
-	
+	\bibitem{routerboard_doc} RouterBOARD 450G MikroTik documentation \url{http://www.routerboard.sk/files/pdf/rb450g_manual.pdf}
+	\bibitem{routeboard_software} RouterBOARD MikroTik Software \url{https://mikrotik.com/software}
 \end{thebibliography}
 
 \end{document}
