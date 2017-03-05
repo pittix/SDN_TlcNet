@@ -199,28 +199,26 @@ def _setTraffic(flow_stat,dpid):
     for table in flow_stat: # fill the throughput of a rule for that port
         if table["actions"]>10000:
             continue
-        # log.debug("*** p: %i bc: %i  ts: %i",table["actions"],table["byteCount"],table["Tsecond"])
         if(table["Tnanos"]==0):
             continue
         else:
             avgTrafPort += 8*10^9*table["byteCount"]/table["Tnanos"] # need a table for each rule
-            # log.debug("average pkt size %.4f",100*avgTrafPort)
-    #for port,avg in avgTrafPort:
-
-        dpid2=myTopo.switch[dpid].port_dpid[table["actions"]]
-    #set the traffic load [0;1] 0= no traffic. 1= link is full
-        try:
-            utilization = 100*avgTrafPort/myTopo.switch[dpid].port_capacity[table["actions"]]
-            # log.debug("Link utilization is %.4f",utilization)
-            myTopo.link_load(dpid, dpid2, utilization)
-        except:
-            utilization = 0.5
-        # if(utilization>TRAFFIC_THRES): #byte for packet
-            # log.debug("on dpid %s there's an host who is congestioning. Throughput/Capacity=%.3f",dpid_to_str(dpid),utilization)
-        myTopo.switch[dpid].host_traffic[table["actions"]] = True
-        for h in myTopo.hosts:
-            if h.ip == myTopo.switch[dpid].port_dpid[table["actions"]]:
-                h.traffic = True
+        if table["match"].dltype == 0x800 and table["match"].nw_proto == 0x06: #TCP:
+            continue; #I don't care about tcp traffic. UDP traffic is more important
+        elif table["match"].dltype == 0x800 and table["match"].nw_proto == 0x017: #UDP
+            dpid2=myTopo.switch[dpid].port_dpid[table["actions"]]
+            try:
+                utilization = avgTrafPort/myTopo.switch[dpid].port_capacity[table["actions"]]
+                # log.debug("Link utilization is %.4f",utilization)
+                myTopo.link_load(dpid, dpid2, utilization)
+            except:
+                utilization = 0.5
+            if(utilization>TRAFFIC_THRES): #byte for packet
+                # log.debug("on dpid %s there's an host who is congestioning. Throughput/Capacity=%.3f",dpid_to_str(dpid),utilization)
+                myTopo.switch[dpid].host_traffic[table["actions"]] = True
+                for h in myTopo.hosts:
+                    if h.ip == myTopo.switch[dpid].port_dpid[table["actions"]]:
+                        h.traffic = True
             else:
                 myTopo.switch[dpid].host_traffic[table["actions"]] = False
                 for h in myTopo.hosts:
@@ -280,7 +278,7 @@ def _handle_flow_stats(event):
         flow_dict.append({})
         flow_dict[i]["tableID"] = rule.table_id
         #flow_dict[i-1]["pad"] = rule.pad
-        flow_dict[i]["match"] = rule.match.show()
+        flow_dict[i]["match"] = rule.match
         flow_dict[i]["Tsecond"] = rule.duration_sec
         flow_dict[i]["Tnanos"] = rule.duration_nsec
         flow_dict[i]["Pri"] = rule.priority
