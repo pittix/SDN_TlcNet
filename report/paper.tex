@@ -107,23 +107,32 @@ wasteful provisioning, as well as provide flexibility and innovation for network
   \subsection{The state of the art}
   \#TODO stato dell arte e paper di riferimento  matteo
 
-\section{Needs and Gools}\label{sec:obb} %obbiettivi ed esigenze controllare
+\section{Needs and Goals}\label{sec:obb} %obbiettivi ed esigenze controllare
 The main gool of this experience is to develop a small SDN network in a lab with real hardware
-in orther to understood come a livello pratico si possa implementare  a QoS service in a SDN scenarois.
+in orther to understand in a practical level how to implement a \textit{Quality of Service, \textbf{QoS}} service in a SDN scenarios.
 Our network have to manage traffic with a global scope, in order to evolve in base on different parameters.
-Inoltre the SDN network need to interact with world wide web efficently.
+Moreover the SDN network need to interact with world wide web efficently.
 %correggere
   \subsection{Adaptability of the network}
   Made Network Adaptable means poter dirottare il traffico in real time to ensure a lot of demands. For example we have to avoid link congestion,
-  but we can prefer reroute some hosting traffic to peggiorare it's performance because of it's evil traffic.
+  but we can prefer reroute some hosting traffic to worsen it's performance because  it is the traffic we don't want to encourage.
   To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a
   global scope.
   The performance of a single connection and entire network can ensure various type of metrics.
-  In order to assicurare queste ci serve una struttura dati che si aggiorna costantemente nella quale immagazzinare le statistiche dei link
-  in modo all'occorrenza di trovare il percordo migliore per ogni singolo flusso dati.
+  In order to ensure the traffic shaping based on network informations, there is a need of a structure, automatically updatable, where the link statistics
+	can be saved to allow the best path for a data stream. The best metric will be described below.
+	%  assicurare queste ci serve una struttura dati che si aggiorna costantemente nella quale immagazzinare le statistiche dei link
+  % in modo all'occorrenza di trovare il percordo migliore per ogni singolo flusso dati.
   \#TODO MATTEO
   \subsection{Exterior comunication}
   \#TODO pitt
+	Our network needed to be able to communicate with the external internet to be useful for a demo which demonstrate the capabilities of a SDN network.
+	The first thing we needed to accomplish was to make the controller aware of what switch and which port of the switch is connected to the external internet:
+	to do so, we allowed our controller to be able to receive in-line parameters. The two parameters we needed the controller to be aware were the mac address of the
+	port of a switch that is connected to the link and the network address of our network, to let the controller know if a request from a host was meant to another host
+	within the network or the data stream was intended to the internet.
+	In this way the host connected to the inner network can surf the net regardless of which type of devices are switching and routing the traffic they are generating.
+
 
 \section{Instrument}\label{sec:instrument}
 \#TODO matteo
@@ -171,19 +180,21 @@ Inoltre the SDN network need to interact with world wide web efficently.
   (aggiungere qualcosa e correggere)
   \#TODO matteo
 
-  \subsection{Traffics analisis}
+  \subsection{Traffics analisis}\label{subsec:traf}
   For every networks performance we have tryed to develop a specific solution. The OpenFlow main goal is to centralize controll and software
   complexity so the routerboard can made only some easy function in orther to contain the hardware complexity and mantainly a good speed.
   Il che ha portato a dover utilizzare stratagemmi.
   \#TODO %riformulare
     \subsubsection{Delay}
-    Per molte applicazioni odierne il delay e' un parametro importantissimo.
+
+	  Per molte applicazioni odierne il delay e' un parametro importantissimo.
     La rete attuale puo' conoscere il delay di un link semplicemente inviando un pachetto ICMP di tipo TimeStamp ( verificare )
     supportato dal protocollo openflow, questo permette di ottenere una precisione nell'ordine dei microsecondi ( verificare ).
 
 
     \#TODO MATTEO
 		\subsubsection{Link Capacity}
+
 		\#TODO andrea
 		The first data that was collected was the actual link capacity, which depends both on the cable used to connect
 		different devices and the effective capacity for each ethernet port linked by the cable itself. Everytime a device supporting
@@ -194,7 +205,8 @@ Inoltre the SDN network need to interact with world wide web efficently.
 		parameter. The simulation with Mininet showed us that this type of information can be used, but the Routeboards didn't support it.
 		As a matter of fact, we weren't able to exploit this capacity in our network realization.
     \subsubsection{Throughput}
-    \#TODO andrea
+
+	  \#TODO andrea
 		Using the flow statistics, we analyzed the traffic going through a link and, with a simple division, we got the normalized throughput.
 		We exploited the information given by the switches with the match structure: this means that we used the throughput for the TCP traffic,
 		the one for the UDP and for each of them we could know toward which IP the traffic is directed or is from. This was exploited with mininet
@@ -202,27 +214,35 @@ Inoltre the SDN network need to interact with world wide web efficently.
 		and divided the host to categories based on it.
 
 		\subsubsection{Packet error rate}
+
 		The port statistics given by the switches contains different informations about the state of each port in a switch. To classify a link for its
 		reliability, we divided the number of packets with erroneous symbols that couldn't be corrected with a FEC by the total number of packets that were sent,
 		getting the packet error rate. The choice we made when exploiting this statistic was privileging the gaming and normal traffic, wherease the
-		heavy traffic was directed to links with highest packet error rate.
+		heavy traffic was directed to links with highest packet error rate.  As the switches exchanges a packet before recognizing most of the error, both because the
+		phisical error are corrected using blocks coding and other error are found using a \textit{Frame Check Sequence} like CRC, the byte error were considered worse as
+		those are indirect measures themself and the error derived from the calculations could grow up.
 		\#TODO andrea
 
     \subsubsection{altre}
     \#TODO andrea ?!?!?
 
   \subsection{Route changing} %cambio rotte
+
   \#TODO andrea
 	For each statistic we got and each parameter we obtained, we changed the weight of the graphs. Every graph we used had a specific weight, so the
 	Dijkstra algorithm for a weighted graph gave different minimum path between two hosts. From the parameter we saved, we choose to change the
 	route to reach the destination and viceversa. The traffic follow the same path, in both the directions and depends only on the type of traffic:
 	we choose to set the minimum unweighted path if no statistics were available, the minimum throughput path for the standard traffic, the minimum
 	delay for the gaming one and the maximum packet error rate for the heavy traffic generated by a host.
+	Two threshold were chosen based on the traffic analysis described on Sec. \ref{subsec:traf} which are 200 bytes/s for the gaming traffic and one megabyte/s
+	when the node is considered in heavy traffic. Those two threshold were made as they are average values and considering that our network is made of few really fast link,
+	so on one side the lower limit is sufficient not to consider gaming traffic to be a normal traffic, wherease it's easy to reach the high level of traffic load between two machines.
 	The changing of the path were made only if the last change happened before one minute because the torrent traffic has, in its protocol, a discovery
 	algortithm. This means that if a lot of changes were made, most of the traffic generated by the peer to peer, is the control one and the result is that the
 	load in the network will be heavy and last longer.
 
   \subsection{ARP solution} %TODO questione dell'arp inutile
+
   During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
   This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
   HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
@@ -239,6 +259,7 @@ Inoltre the SDN network need to interact with world wide web efficently.
   \#TODO andrea
 
   \subsection{Default Gw problem}
+
   The computers don't need anymore to set a gateway to reach another network as the controller and the switches will redirect the traffic
   properly, according to the rules set by the first. The controller must only know which switch ports are connected to the
   internet and then add them to the path. in this way, the controller can set a path to reach it and provide connectivity with
@@ -246,6 +267,7 @@ Inoltre the SDN network need to interact with world wide web efficently.
   \#TODO andrea
 
   \subsection{Ip switching in pox}
+
   \#TODO andrea
 	One of the problem encountered was that, if an host is already found by pox and there is a PacketIn event, the core of the controller
 	switches the source and the destination IP and MAC address with the source one. The problem was partially solved, checking out the
