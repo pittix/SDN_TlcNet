@@ -80,11 +80,11 @@
 
 \begin{abstract}
 Quality of Service(QoS) in existing network architectures is an ongoing problem.
-A lot of researcher and industries try to solve this problem with many solution but a lot of them are too 
+A lot of researcher and industries try to solve this problem with many solution but a lot of them are too
 expensive other failed or are not implemented.
 Software Defined Networking(SDN) paradigm has emerged in response to limitations of traditional networking architectures.
 The main advantages of SDN are centralized global network view. This particular features have got attention of researchers to improve QoS.
-In questo report mostreremo quali sono stati i principali risutati raggiunti e i problemi incontrati nella realizzazione di 
+In questo report mostreremo quali sono stati i principali risutati raggiunti e i problemi incontrati nella realizzazione di
 un applicativo SDN in grado di supportare un servizio di tipo QoS.
 Lo standard OpenFlow e il controller python POX largamente diffuso sono stati gli strumenti che hanno reso possibile la
 realizzazione di quest'esperienza pur mostrando i limiti dovuti all'utilizzo di una tecnologia nuova e in fase di ricerca.
@@ -92,55 +92,138 @@ realizzazione di quest'esperienza pur mostrando i limiti dovuti all'utilizzo di 
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-Software-defined networking (SDN) is way to manage networks that separates the control plane from the forwarding plane. 
-SDN offers a centralized view of the network, giving an SDN Controller the ability to act as the “brains” of the network. 
-The SDN Controller relays information to switches and routers via southbound APIs, and to the applications with northbound APIs. 
+Software-defined networking (SDN) is way to manage networks that separates the control plane from the forwarding plane.
+SDN offers a centralized view of the network, giving an SDN Controller the ability to act as the “brains” of the network.
+The SDN Controller relays information to switches and routers via southbound APIs, and to the applications with northbound APIs.
 One of the most well-known protocols used by SDN Controllers is OpenFlow, however, it isn’t the only SDN standard, but it is widely accepted.
 Centralized, programmable SDN environments can easily adjust to the rapidly changing needs of businesses. SDN can lower costs and limit
 wasteful provisioning, as well as provide flexibility and innovation for networks.
-\#TODO da completare 
+\#TODO da completare
   \subsection{OpenFlow}
   During 2006 thanks to M. Casado was developed Ethane a new network architecture on this conncept during 2011 was bord the Open Network Foundatin.
   This is a no profit association that would innovate SDN and standardize OpenFlow protocol whit relatives tecnology \cite{ONF}.
   The first version of OpenFlow is 1.0.0 release on 2009 but the last standardized version is v1.5.1 approved on march 2015 \cite{ONF_report}.
   \#TODO da sistemare
-  \subsection{The state of the art}
+  \\
+  \\
+  \textbf{Openflow 1.0 messages}
+Openflow defines a number of messages between a controller and a switch. Now there will be presented some messages we exploited:\cite{openflow}
+\begin{itemize}
+
+\item \emph{Hello} \newline This message is sent both from the controller and the switch who is looking for a controller after it
+	is turned on. If the switch sent the message, the controller, after receiving it, will send the FeatureReq packet to that switch.
+\item \emph{FeatureReq} \newline this is the message that the controller sends to a switch to know its abilities. The switch
+	respond with a FeatureRes and when this last message reaches the pox controller, the ConnectionUp event is raised.
+	With the featureRes the controller will know how many ports a switch has and their properties (e.g. if they are connected, link speed,...), the flow table capabilities and the supported statistics.
+\item \emph{PortStatus} \newline this message is sent from a switch to the controller, to notify that some ports has changed their status.
+		It's useful to check if a port has someone connected
+\item \emph{StatsReq} \newline The controller will send this message to request the statistics. The payload of the message contains the type of statistic the controller want to know.
+		The switch then will answer with the Stats reply, if it supports that type of stat. It will send a Bad_Request message if not.
+\item \emph{PacketIn} \newline This message is sent from the switch to the controller whenever a packet arrives and it doesn't match
+		any rule. The controller can decide to ignore that type of message, insert this message in a PacketOut message, or set
+		a flow rule for packets like this using a FlowMod.
+\item \emph{PacketOut} \newline This message is sent from the controller to forward a packet, which is the payload of the PacketOut message, to some
+		port(s).
+\item \emph{FlowMod} \newline This message set, delete or modify a rule inside a switch. Is the message that allows routing.
+\\
+\\
+\end{itemize}
+
+\textbf{Forwarding table:}f
+\begin{itemize}
+ \item \texttt{match fields:} sono i valori con cui i pacchetti vengono confrontati per cercare corrispondenze. Contengono la porta d'ingresso, l'intestazione del pacchetto, 
+ e altri campi opzionali;
+ \item \texttt{priority:} precedenza nel caso di voci con pi\`u corrispondenze;
+ \item \texttt{counter:} incrementato ogni qualvolta che viene riscontrata la corrispondenza con un pacchetto;
+ \item \texttt{istructions:} istruzioni da aggiungere all'\emph{Action-Set} o modifiche al flusso della pipeline;
+ \item \texttt{timeouts:} massimo tempo per cui lo switch tiene in memoria questa voce, altre il quale la voce viene scartata;
+ \item \texttt{cookie:} valori utilizzati per statistiche riguardo la singola voce, quindi non vengono considerati nell'elaborazione dei pacchetti dati;
+ \item \texttt{flags:} utilizzate per differenziare la gestione della voce;
+ \\
+ \\
+\end{itemize}
+
+\textbf{Match Constraints}
+principal match method that we can used with OpenFlow v1.0:
+\begin{itemize}
+ \item \texttt{in_port}: the port of swith;
+ \item \texttt{dl_src/dl_dst}: 802.3 MAC source and destination of packet;
+ \item \texttt{dl_type}: 802.3 EtherType;
+ \item \texttt{nw_tos}: IPv4 ToS;
+ \item \texttt{nw_proto}: IPv4 Protocol;
+ \item \texttt{nw_src/nw_dst}: IPv4 Source/Destination;
+ \item \texttt{tp_src/tp_dst}: TCP/UDP Source/Destination Port;
+ \\
+ \\
+\end{itemize}
+
+\textbf{Action}
+With the OpenFlow v1.0 in practice we can do simply things:
+\begin{itemize}
+ \item \texttt{Output}: set output port;
+ \item \texttt{SetDLSrc/Dst}: modify packet MAC address;
+ \item \texttt{SetNWSrc/Dst}: modify packet IPv4 address;
+ \item \texttt{SetNWTos}
+ \item \texttt{SetTPSrc/Dst}
+\end{itemize}
+With from OpenFlow v1.1 in poi we can modify Time To Live and other things.
+
+
+
+
+  \subsection{Related Work}
+  The work presented in 
+"Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad \cite{farzaneh} 
+has been implemented to improve the controller speed and efficiency as it make it more reactive.
+The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found 
+in the paper called "Getting traffic statistics from network devices in an SDN environment using OpenFlow" by D.J. Hamad \& others. [ put note here]
+For traffic analysis we haven't found any paper describing the characteristics of
+some types of flows, so we used our PCs to sniff the traffic. Traffic analysis will be discussed in section.
   \#TODO stato dell arte e paper di riferimento  matteo
 
-\section{Needs and Gools}\label{sec:obb} %obbiettivi ed esigenze controllare 
+\section{Needs and Goals}\label{sec:obb} %obbiettivi ed esigenze controllare
 The main gool of this experience is to develop a small SDN network in a lab with real hardware
-in orther to understood come a livello pratico si possa implementare  a QoS service in a SDN scenarois.
+in orther to understand in a practical level how to implement a \textit{Quality of Service, \textbf{QoS}} service in a SDN scenarios.
 Our network have to manage traffic with a global scope, in order to evolve in base on different parameters.
-Inoltre the SDN network need to interact with world wide web efficently.
+Moreover the SDN network need to interact with world wide web efficently.
 %correggere
   \subsection{Adaptability of the network}
-  Made Network Adaptable means poter dirottare il traffico in real time to ensure a lot of demands. For example we have to avoid link congestion, 
-  but we can prefer reroute some hosting traffic to peggiorare it's performance because of it's evil traffic.
-  To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a 
+  Made Network Adaptable means poter dirottare il traffico in real time to ensure a lot of demands. For example we have to avoid link congestion,
+  but we can prefer reroute some hosting traffic to worsen it's performance because  it is the traffic we don't want to encourage.
+  To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a
   global scope.
   The performance of a single connection and entire network can ensure various type of metrics.
-  In order to assicurare queste ci serve una struttura dati che si aggiorna costantemente nella quale immagazzinare le statistiche dei link 
-  in modo all'occorrenza di trovare il percorso migliore per ogni singolo flusso dati.
+  In order to ensure the traffic shaping based on network informations, there is a need of a structure, 
+  automatically updatable, where the link statistics can be saved to allow the best path for a data stream. The best metric will be described below.
+  %  assicurare queste ci serve una struttura dati che si aggiorna costantemente nella quale immagazzinare le statistiche dei link
+  % in modo all'occorrenza di trovare il percordo migliore per ogni singolo flusso dati.
   \#TODO MATTEO
   \subsection{Exterior comunication}
   \#TODO pitt
-  
+	Our network needed to be able to communicate with the external internet to be useful for a demo which demonstrate the capabilities of a SDN network.
+	The first thing we needed to accomplish was to make the controller aware of what switch and which port of the switch is connected to the external internet:
+	to do so, we allowed our controller to be able to receive in-line parameters. The two parameters we needed the controller to be aware were the mac address of the
+	port of a switch that is connected to the link and the network address of our network, to let the controller know if a request from a host was meant to another host
+	within the network or the data stream was intended to the internet.
+	In this way the host connected to the inner network can surf the net regardless of which type of devices are switching and routing the traffic they are generating.
+
+
 \section{Instrument}\label{sec:instrument}
 \#TODO matteo
   \subsection{Controller}
   The controller that we use is POX, the software is opensource and it is write with Python, it is based on SDN and support OpenFlow.
   The software use the version 2.7 of Python.
-  It's repository is at this link \url{https://github.com/noxrepo/pox} and a lot of documentation about the progect 
+  It's repository is at this link \url{https://github.com/noxrepo/pox} and a lot of documentation about the progect
   is present at this link \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}.
   The only problem to use this controller is that it support only the first version of OpenFlow1.0.
   \\
-  The controller run inside a VirtualMachine on our personal computer, 
-  the VM is offered by SDN hub on this site: \url{http://sdnhub.org/tutorials/sdn-tutorial-vm/}. 
+  The controller run inside a VirtualMachine on our personal computer,
+  the VM is offered by SDN hub on this site: \url{http://sdnhub.org/tutorials/sdn-tutorial-vm/}.
   This VM is a 64-bit Ubuntu 14.04 that has a number of SDN software and tools installed.
   % \#TODO matteo da correggere e completare
   \subsection{Router Board}
-  The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualize an OpenFlow switch that support 
-  OpenFlow v1.0\cite{routerboard_doc}. 
+  The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualize an OpenFlow switch that support
+  OpenFlow v1.0\cite{routerboard_doc}.
   \begin{itemize}
    \item CPU		AR7161 680MHz
    \item Memory		256MB DDR SDRAM onboard memory
@@ -152,48 +235,85 @@ Inoltre the SDN network need to interact with world wide web efficently.
   \newline
   The \textbf{Operating System} that they use is MikroTik RouterOS ( cercare la versione installata) \cite{routeboard_software}.
   \newline
-  One limitation of this routerboard is that it has only 5 ethernet port this is a limitation because consider that one of this port it is 
+  One limitation of this routerboard is that it has only 5 ethernet port this is a limitation because consider that one of this port it is
   used to connect conntroller and with other port we have made host and other routerboard connection.
-  
+
   %correggere e completare Matteo
-  
+
 \section{Results}\label{sec:results}
 \#TODO %qui non so se serve un'introduzione o meno
   \subsection{Graph and Network structures}
   In order to achieve the realtime adaptability and statistics storage we have develop ad-hoc structure.
-  We use a specific python library called NetworkX \cite{networkx} to create a graph in witch we can storage ad-hoc node that represent 
+  We use a specific python library called NetworkX \cite{networkx} to create a graph in witch we can storage ad-hoc node that represent
   resplectively switch or host element.
-  This topological structure is updated realtime thanks to connection event and link discover offered by various library. 
+  This topological structure is updated realtime thanks to connection event and link discover offered by various library.
   ( mettere i vari eventi che sfrutto )
-  The link besides have many parameters in witch we can save network performance. To update every link parameter we have to creat ad hoc function 
+  The link besides have many parameters in witch we can save network performance. To update every link parameter we have to creat ad hoc function
   because there isn't some function constructed yet. ( sistemare frase) .
   This type of structure allow us to run Dijkstra algorithm that return the minimum path ( in base a vari parametri ) on a nlog n time ( verificare).
   (aggiungere qualcosa e correggere)
   \#TODO matteo
-  
-  \subsection{Traffics analisis}
+
+  \subsection{Traffics analisis}\label{subsec:traf}
   For every networks performance we have tryed to develop a specific solution. The OpenFlow main goal is to centralize controll and software
   complexity so the routerboard can made only some easy function in orther to contain the hardware complexity and mantainly a good speed.
   Il che ha portato a dover utilizzare stratagemmi.
   \#TODO %riformulare
     \subsubsection{Delay}
-    Per molte applicazioni odierne il delay e' un parametro importantissimo. 
-    La rete attuale puo' conoscere il delay di un link semplicemente inviando un pachetto ICMP di tipo TimeStamp ( verificare ) 
+
+	  Per molte applicazioni odierne il delay e' un parametro importantissimo.
+    La rete attuale puo' conoscere il delay di un link semplicemente inviando un pachetto ICMP di tipo TimeStamp ( verificare )
     supportato dal protocollo openflow, questo permette di ottenere una precisione nell'ordine dei microsecondi ( verificare ).
-    
-    
+
+
     \#TODO MATTEO
-    \subsubsection{Trougthput}
-    \#TODO andrea
-    \subsubsection{Link Capacity}
-    \#TODO andrea
-    \subsubsection{altre}
-    \#TODO andrea
-    
+		\subsubsection{Link Capacity}
+
+		\#TODO andrea
+		The first data that was collected was the actual link capacity, which depends both on the cable used to connect
+		different devices and the effective capacity for each ethernet port linked by the cable itself. Everytime a device supporting
+		openflow connects to the controller, it gives to the latter information about its status and its capabilities. One of them is
+		the link capacity in three ways: the first is the \textit{supported} capacity, which is the phisical maximum capacity, the second is the
+		\textit{advised} capacity, which name describes itself and the latter is the \textit{current} one. We choose to save the last one,
+		as it gives the most useful about the link state. This information, moreover, is the one that non-SDN switches use to choose the \textit{metric}
+		parameter. The simulation with Mininet showed us that this type of information can be used, but the Routeboards didn't support it.
+		As a matter of fact, we weren't able to exploit this capacity in our network realization.
+    \subsubsection{Throughput}
+
+	  \#TODO andrea
+		Using the flow statistics, we analyzed the traffic going through a link and, with a simple division, we got the normalized throughput.
+		We exploited the information given by the switches with the match structure: this means that we used the throughput for the TCP traffic,
+		the one for the UDP and for each of them we could know toward which IP the traffic is directed or is from. This was exploited with mininet
+		simulations, but not in the set up in the laboratory. With the latter, we used the statistics as an indicator of the bitrate of a link
+		and divided the host to categories based on it.
+
+		\subsubsection{Packet error rate}
+
+		The port statistics given by the switches contains different informations about the state of each port in a switch. To classify a link for its
+		reliability, we divided the number of packets with erroneous symbols that couldn't be corrected with a FEC by the total number of packets that were sent,
+		getting the packet error rate. The choice we made when exploiting this statistic was privileging the gaming and normal traffic, wherease the
+		heavy traffic was directed to links with highest packet error rate.  As the switches exchanges a packet before recognizing most of the error, both because the
+		phisical error are corrected using blocks coding and other error are found using a \textit{Frame Check Sequence} like CRC, the byte error were considered worse as
+		those are indirect measures themself and the error derived from the calculations could grow up.
+		\#TODO andrea
+
   \subsection{Route changing} %cambio rotte
+
   \#TODO andrea
-  
+	For each statistic we got and each parameter we obtained, we changed the weight of the graphs. Every graph we used had a specific weight, so the
+	Dijkstra algorithm for a weighted graph gave different minimum path between two hosts. From the parameter we saved, we choose to change the
+	route to reach the destination and viceversa. The traffic follow the same path, in both the directions and depends only on the type of traffic:
+	we choose to set the minimum unweighted path if no statistics were available, the minimum throughput path for the standard traffic, the minimum
+	delay for the gaming one and the maximum packet error rate for the heavy traffic generated by a host.
+	Two threshold were chosen based on the traffic analysis described on Sec. \ref{subsec:traf} which are 200 bytes/s for the gaming traffic and one megabyte/s
+	when the node is considered in heavy traffic. Those two threshold were made as they are average values and considering that our network is made of few really fast link,
+	so on one side the lower limit is sufficient not to consider gaming traffic to be a normal traffic, wherease it's easy to reach the high level of traffic load between two machines.
+	The changing of the path were made only if the last change happened before one minute because the torrent traffic has, in its protocol, a discovery
+	algortithm. This means that if a lot of changes were made, most of the traffic generated by the peer to peer, is the control one and the result is that the
+	load in the network will be heavy and last longer.
+
   \subsection{ARP solution} %TODO questione dell'arp inutile
+
   During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
   This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
   HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
@@ -208,22 +328,28 @@ Inoltre the SDN network need to interact with world wide web efficently.
   This can be seen by a reader as a violation of the layers in the ISO/OSI stack, but to exploit the potentials of the SDN approach,
   this is necessary. TODO explain why TODO!!!!**
   \#TODO andrea
-  
-  \subsection{Default Gw problem} 
+
+  \subsection{Default Gw problem}
+
   The computers don't need anymore to set a gateway to reach another network as the controller and the switches will redirect the traffic
   properly, according to the rules set by the first. The controller must only know which switch ports are connected to the
   internet and then add them to the path. in this way, the controller can set a path to reach it and provide connectivity with
-  a traffic shaping policy and/or differentiate the traffic from and to different networks. 
+  a traffic shaping policy and/or differentiate the traffic from and to different networks.
   \#TODO andrea
-  
+
   \subsection{Ip switching in pox}
+
   \#TODO andrea
-  
+	One of the problem encountered was that, if an host is already found by pox and there is a PacketIn event, the core of the controller
+	switches the source and the destination IP and MAC address with the source one. The problem was partially solved, checking out the
+	parameters known by the controller, i.e. if the two host are connected to two different switches and the controller switches the source with the
+	destination address, we can switch it back; the result is that the PacketIn event now has correct informations.
+
 \section{Conclusions}\label{sec:conclusion}
 Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
 ehi
 \#TODO
-  
+
 
 \begin{thebibliography}{99}
 	\bibitem{pox} POX \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}
@@ -236,6 +362,8 @@ ehi
 	\bibitem{ONF_report} v1.5.1 OpenFlow report \url{https://www.opennetworking.org/sdn-resources/technical-library}
 	\bibitem{routerboard_doc} RouterBOARD 450G MikroTik documentation \url{http://www.routerboard.sk/files/pdf/rb450g_manual.pdf}
 	\bibitem{routeboard_software} RouterBOARD MikroTik Software \url{https://mikrotik.com/software}
+	\bibitem{farzaneh}  Efficient Topology Discovery in Software Defined Networks F. Pakzad, M. Portmann, W. L. Tan and J. Indulska 
+	School of ITEE, The University of Queensland Brisbane, Australia \url{https://www.researchgate.net/publication/271508903_Efficient_Topology_Discovery_in_OpenFlow-based_Software_Defined_Networks}
 \end{thebibliography}
 
 \end{document}
