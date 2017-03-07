@@ -129,7 +129,7 @@ Openflow defines a number of messages between a controller and a switch. Now the
 \\
 \end{itemize}
 
-\textbf{Forwarding table:}f
+\textbf{Forwarding table:}
 \begin{itemize}
  \item \texttt{match fields:} sono i valori con cui i pacchetti vengono confrontati per cercare corrispondenze. Contengono la porta d'ingresso, l'intestazione del pacchetto, 
  e altri campi opzionali;
@@ -171,7 +171,7 @@ With from OpenFlow v1.1 in poi we can modify Time To Live and other things.
 
 
 
-  \subsection{Related Work}
+\subsection{Related Work}
   The work presented in 
 "Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad \cite{farzaneh} 
 has been implemented to improve the controller speed and efficiency as it make it more reactive.
@@ -222,6 +222,13 @@ Moreover the SDN network need to interact with world wide web efficently.
   This VM is a 64-bit Ubuntu 14.04 that has a number of SDN software and tools installed.
   % \#TODO matteo da correggere e completare
   \subsection{Router Board}
+  \begin{figure}[!h]
+ \centering
+ \includegraphics[scale=0.30]{images/rboard.png}
+ \caption{\emph{Experience scenario}}
+ \label{fig:topo}
+  \end{figure}
+  
   The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualize an OpenFlow switch that support
   OpenFlow v1.0\cite{routerboard_doc}.
   \begin{itemize}
@@ -241,6 +248,27 @@ Moreover the SDN network need to interact with world wide web efficently.
   %correggere e completare Matteo
 
 \section{Results}\label{sec:results}
+\subsection{Real Lab Scenario}
+The topological scenario in which we have set up experience is the next:
+\begin{figure}[!h]
+ \centering
+ \includegraphics[scale=0.70]{images/topo.png}
+ \caption{\emph{Experience scenario}}
+ \label{fig:topo}
+\end{figure}
+
+We have used some principal function released with POX controller:
+\begin{itemize}
+ %\item \texttt{pox.topology.launch()} and \texttt{pox.openflow.topology.launch()} descrivere a che ci serve\cite{pox}.
+ \item \texttt{pox.openflow.discovery.launch()} this function run algorithm in order to discovery the network and every time in witch some new 
+ topological change occour it return an event with ( con cui ) we can update our topological knowledge.
+ It does not provide the host event. For host event\cite{pox}.
+ \item \texttt{pox.openflow.spanning_tree.launch()} this function is necessary with a presence of loop on topology 
+ because with a spanning_tree algorithm it avoid the broadcast storm of message. When we set up \texttt{OFPP_FLOOD} like output port action in a table's 
+ switch row if some spanning_tree algorithm run the \texttt{OFPP_FLOOD} is only theoretical infact the algorithm close some port for flooding service 
+ on the switch in orther to avoid loop\cite{pox}.
+\end{itemize}
+
 \#TODO %qui non so se serve un'introduzione o meno
   \subsection{Graph and Network structures}
   In order to achieve the realtime adaptability and statistics storage we have develop ad-hoc structure.
@@ -256,17 +284,53 @@ Moreover the SDN network need to interact with world wide web efficently.
 
   \subsection{Traffics analisis}\label{subsec:traf}
   For every networks performance we have tryed to develop a specific solution. The OpenFlow main goal is to centralize controll and software
-  complexity so the routerboard can made only some easy function in orther to contain the hardware complexity and mantainly a good speed.
+  complexity so the routerboard can made only some easy function in orther to contain the hardware complexity and mantainly a good speed\cite{qos_paper}.
   Il che ha portato a dover utilizzare stratagemmi.
   \#TODO %riformulare
     \subsubsection{Delay}
+Monitoring round-trip time provides important insights for network troubleshooting and traffic engineering.
+The  common  monitoring  technique  is  to  actively  send  probe packets  from  selected  vantage  points  (hosts  or  middleboxes).
+In traditional  networks, the control over the network routing is
+limited,  making  it  impossible  to  monitor  every  selected  path. The  emerging  concept  of  Software  Defined  Networking  sim-plifies 
+network  control.  However,  OpenFlow,  the  common  SDN protocol,   does   not   support   RTT   monitoring   as   part   of   its
+specification. In this experience we have tryed to emply an tecnic to escape this problem\cite{rtt}.
+\newline The idea is to measure the time that occure from sending a packet from controller to a switch and the time in which the packet return from 
+an other switch.
+\\
+\newline First we have to discovery round trip time from controller to every single switch on our topology.
+In order to do this on the controller we start a timer, we send a proper packet to the switch specifing the \texttt{OFPP_CONTROLLER - Send to the controller}
+option and when the message return to the controller we stop the timer and calculare RTT for the switch.
+\begin{figure}[!h]
+ \centering
+ \includegraphics[scale=0.70]{images/rtt2.png}
+ \caption{\emph{RTT between controller and OF switch}}
+ \label{fig:topo}
+\end{figure}
+\newline
+If we need to calculate the delay on a specific link, the rtt has to calculate with the headed switch of this link.
+\\
+\newline 
+Now we create a proper message with unique identifier number, we start a timer \texttt{TM1} and then send this message to a first switch specifing the output port.
+Then when the packet comes to the second switch it identify the particular message and sends to the controller that stops it's dedicated timer \texttt{TM2}.
+\newline This part required a particolar flow entry on the second switch in orther to send to the controller only some particulare packet.
+\begin{figure}[!h]
+ \centering
+ \includegraphics[scale=0.70]{images/rtt1.png}
+ \caption{\emph{Pck from controller to itself following a particular way.}}
+ \label{fig:topo}
+\end{figure}
+\\
+\newline At this point we can calculate the delay of the link.
+\\
+\\
+ delay = (TM2 - TM1) - RTT1/2 - RTT2/2
+\\
+\\
+Teorethically this method must works but in practice there are a lot of delay introduce from computational concestion on the virtualized controller.
+What we observe is a estimated delay like some seconds that is impossible, infact if we made some \texttt{ping test} from one host to another host 
+in this SDN network we realize delay around 3ms.
+\\
 
-	  Per molte applicazioni odierne il delay e' un parametro importantissimo.
-    La rete attuale puo' conoscere il delay di un link semplicemente inviando un pachetto ICMP di tipo TimeStamp ( verificare )
-    supportato dal protocollo openflow, questo permette di ottenere una precisione nell'ordine dei microsecondi ( verificare ).
-
-
-    \#TODO MATTEO
 		\subsubsection{Link Capacity}
 
 		\#TODO andrea
@@ -278,15 +342,16 @@ Moreover the SDN network need to interact with world wide web efficently.
 		as it gives the most useful about the link state. This information, moreover, is the one that non-SDN switches use to choose the \textit{metric}
 		parameter. The simulation with Mininet showed us that this type of information can be used, but the Routeboards didn't support it.
 		As a matter of fact, we weren't able to exploit this capacity in our network realization.
+		\\
+		\\
     \subsubsection{Throughput}
-
 	  \#TODO andrea
 		Using the flow statistics, we analyzed the traffic going through a link and, with a simple division, we got the normalized throughput.
 		We exploited the information given by the switches with the match structure: this means that we used the throughput for the TCP traffic,
 		the one for the UDP and for each of them we could know toward which IP the traffic is directed or is from. This was exploited with mininet
 		simulations, but not in the set up in the laboratory. With the latter, we used the statistics as an indicator of the bitrate of a link
 		and divided the host to categories based on it.
-
+\\
 		\subsubsection{Packet error rate}
 
 		The port statistics given by the switches contains different informations about the state of each port in a switch. To classify a link for its
@@ -296,7 +361,7 @@ Moreover the SDN network need to interact with world wide web efficently.
 		phisical error are corrected using blocks coding and other error are found using a \textit{Frame Check Sequence} like CRC, the byte error were considered worse as
 		those are indirect measures themself and the error derived from the calculations could grow up.
 		\#TODO andrea
-
+\\
   \subsection{Route changing} %cambio rotte
 
   \#TODO andrea
@@ -312,7 +377,7 @@ Moreover the SDN network need to interact with world wide web efficently.
 	algortithm. This means that if a lot of changes were made, most of the traffic generated by the peer to peer, is the control one and the result is that the
 	load in the network will be heavy and last longer.
 
-  \subsection{ARP solution} %TODO questione dell'arp inutile
+  \subsection{ARP solution} 
 
   During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
   This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
@@ -326,8 +391,7 @@ Moreover the SDN network need to interact with world wide web efficently.
   became useless, as the connection is point to point. So, knowing the destination layer2 address is useless as the switch can act
   regardless of it. The only thing the switch need to know is the layer2, layer 3 addresses and, at most, the layer 4 address.
   This can be seen by a reader as a violation of the layers in the ISO/OSI stack, but to exploit the potentials of the SDN approach,
-  this is necessary. TODO explain why TODO!!!!**
-  \#TODO andrea
+  this is necessary. 
 
   \subsection{Default Gw problem}
 
@@ -357,13 +421,19 @@ ehi
 	\bibitem{pox_repo} POX's repository \url{https://github.com/noxrepo/pox}
 	\bibitem{VM} Virtual Machine \url{http://sdnhub.org/tutorials/pox/}
 	\bibitem{router_board} Router Board \url{https://www.senetic.it/product/RB450G}
-	\bibitem{netoworkx} NetworkX python's library \url{https://networkx.github.io/}
+	\bibitem{networkx} NetworkX python's library \url{https://networkx.github.io/}
 	\bibitem{ONF} Open Networking Foundation \url{https://www.opennetworking.org/sdn-resources/technical-library}
 	\bibitem{ONF_report} v1.5.1 OpenFlow report \url{https://www.opennetworking.org/sdn-resources/technical-library}
 	\bibitem{routerboard_doc} RouterBOARD 450G MikroTik documentation \url{http://www.routerboard.sk/files/pdf/rb450g_manual.pdf}
 	\bibitem{routeboard_software} RouterBOARD MikroTik Software \url{https://mikrotik.com/software}
 	\bibitem{farzaneh}  Efficient Topology Discovery in Software Defined Networks F. Pakzad, M. Portmann, W. L. Tan and J. Indulska 
 	School of ITEE, The University of Queensland Brisbane, Australia \url{https://www.researchgate.net/publication/271508903_Efficient_Topology_Discovery_in_OpenFlow-based_Software_Defined_Networks}
-\end{thebibliography}
+	\bibitem{qos_paper} OpenNetMon: Network Monitoring in OpenFlow Software-Defined Networks Niels L.
+	M. van Adrichem, Christian Doerr and Fernando A. Kuipers Network Architectures and Services, Delft University of Technology 
+	Mekelweg 4, 2628 CD Delft, The Netherlands \url{https://pdfs.semanticscholar.org/ea94/7a9334484ee4c3bb6bcfb4d1590aece1b178.pdf}
+	\bibitem{rtt} Efficient Round-Trip Time Monitoring in OpenFlow Networks A. Atary A. Bremler-Barr Interdisciplinary Center Herzliya \url{http://www.deepness-lab.org/pubs/infocom2016_grami.pdf}
+	 
+	
+	\end{thebibliography}
 
 \end{document}
