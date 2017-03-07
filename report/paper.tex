@@ -104,7 +104,12 @@ wasteful provisioning, as well as provide flexibility and innovation for network
   This is a no profit association that would innovate SDN and standardize OpenFlow protocol whit relatives tecnology \cite{ONF}.
   The first version of OpenFlow is 1.0.0 release on 2009 but the last standardized version is v1.5.1 approved on march 2015 \cite{ONF_report}.
   \#TODO da sistemare
-  \\
+\begin{figure}[!h]
+ \centering
+ \includegraphics[scale=0.58]{images/of.jpg}
+ \caption{\emph{OpenFlow}}
+ \label{fig:topo}
+\end{figure}
   \\
   \textbf{Openflow 1.0 messages}
 Openflow defines a number of messages between a controller and a switch. Now there will be presented some messages we exploited:\cite{openflow}
@@ -168,7 +173,21 @@ With the OpenFlow v1.0 in practice we can do simply things:
 \end{itemize}
 With from OpenFlow v1.1 in poi we can modify Time To Live and other things.
 
+\subsection{Known Limitations}
+SDN networks are known to be underperforming with low traffic, which means that if nodes tries to connect with each other
+to exchange little traffic, the network will have a higher delay and will perform worst than a
+traditional network. We tried to reduce this underperformance with the usage of the wildcards:
+Every rule needs at least the source ip or the destination ip. If one of them is in a network
+(e.g. the internet traffic is in the network 0.0.0.0/0 excluded 192.168.10.0/24 ),
+we can redirect all the traffic from an internal host to the internet with a predefined
+path. This means that only one PacketIn will be sent to the controller if a host is surfing the network.
 
+Another limitation is the no default routing from a source to a destination: when an host
+is plugged to a network of SDN switches, it won't know the destinatio. The only way it can
+discover the host is by flooding the network with that packet, but this makes each switch raise a PacketIn message to the controller
+slowing down the startup of the connection. This thing doesn't happen with traditional routing, because each router knows
+the network disposition, but doesn't know each host how much traffic is doing. For that the administrator need to put a firewall.
+The last one isn't needed, as the controller can set a switch to drop all the packets from/to a destination.
 
 
 \subsection{Related Work}
@@ -209,7 +228,6 @@ Moreover the SDN network need to interact with world wide web efficently.
 
 
 \section{Instrument}\label{sec:instrument}
-\#TODO matteo
   \subsection{Controller}
   The controller that we use is POX, the software is opensource and it is write with Python, it is based on SDN and support OpenFlow.
   The software use the version 2.7 of Python.
@@ -248,15 +266,17 @@ Moreover the SDN network need to interact with world wide web efficently.
   %correggere e completare Matteo
 
 \section{Results}\label{sec:results}
-\subsection{Real Lab Scenario}
-The topological scenario in which we have set up experience is the next:
-\begin{figure}[!h]
- \centering
- \includegraphics[scale=0.70]{images/topo.png}
- \caption{\emph{Experience scenario}}
- \label{fig:topo}
-\end{figure}
-
+\subsection{Controller:}
+We developed a controller that can handle a mesh network, which has loops, that avoid
+the traffic flooding. The controller stores the switch and the connection between them;
+knows which hosts are connected to each switch port, with the hypothesys that only one
+host is connected at each port, unless the port is the one connected to the internet.
+With the use of the statistics, the controller get the status of the network and, if necessary,
+tries to adjust the traffic and put in the link with the higher path loss the torrent traffic,
+make the connection between two gaming host the one with less delay and tries to redistribute all the traffic in a way
+such that all the nodes have an average throughput as lowest as possible.
+\\
+\newline
 We have used some principal function released with POX controller:
 \begin{itemize}
  %\item \texttt{pox.topology.launch()} and \texttt{pox.openflow.topology.launch()} descrivere a che ci serve\cite{pox}.
@@ -268,9 +288,20 @@ We have used some principal function released with POX controller:
  switch row if some spanning_tree algorithm run the \texttt{OFPP_FLOOD} is only theoretical infact the algorithm close some port for flooding service 
  on the switch in orther to avoid loop\cite{pox}.
 \end{itemize}
+\subsection{Real Lab Scenario}
+The topological scenario in which we have set up experience is the next:
+\begin{figure}[!h]
+ \centering
+ \includegraphics[scale=0.70]{images/topo.png}
+ \caption{\emph{Experience scenario}}
+ \label{fig:topo}
+\end{figure}
 
-\#TODO %qui non so se serve un'introduzione o meno
-  \subsection{Graph and Network structures}
+We have use 4 MikroTik Router board that were provided us in the Communication Networks Lab at DEI in University of Padua.
+The 4 routerboard is connected each other in order to design a loop. Every sigle board connect two host and is connected with a legacy switch that provide 
+to logically connected with controller.
+
+\subsection{Graph and Network structures}
   In order to achieve the realtime adaptability and statistics storage we have develop ad-hoc structure.
   We use a specific python library called NetworkX \cite{networkx} to create a graph in witch we can storage ad-hoc node that represent
   resplectively switch or host element.
@@ -283,6 +314,30 @@ We have used some principal function released with POX controller:
   \#TODO matteo
 
   \subsection{Traffics analisis}\label{subsec:traf}
+  We used laptop connected via
+GigabitEthernet interface and Ethernet cable cat.5a to receive the traffic from the destination host.
+Our laptop has been connected via Wi-Fi to our access point via protocol 802.11n.
+No other traffic sources were active during the testing, so the router was handling only
+the traffic from laptop when sniffing traffic. The connection used was an ADSL2+ via copper.
+We did 3 type of traffic analysis: Gaming traffic, Skype® and torrent traffic. We analyzed
+\#Mb for the gaming traffic, \#Mb for the VoIP traffic and 3GB for the torrent traffic.
+The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP)
+
+The traffic analysis of the torrent protocol shows that the average packet size is the MTU
+(i.e. 1500bytes) and the protocol tryies to exploit all the channel capabilities. The traffic
+is made via UDP packets with the port range in the ephimeral ports (2000_- 65535).
+Moreover, the node is linked to a lot of IPs with multiple connection: this means that
+if someone wants to find a p2p traffic, it can look to the statistics and see if the traffic is loading all the channel,
+to how many IPs, an host is connected to and if it uses UDP.
+For the VoIP we saw that the protocol uses UDP and the traffic, after a transition time, goes only between two hosts.
+The average packet size is the MTU and the protocol tryies to exploit all the channel for a better QoE.
+On another test, we tried the VoIP while a download was ongoing, and we saw that the quality
+decreased to allow communication. The traffic is between the UDP port 80 \#\#TODO\#\# TOCHECK \#\#
+
+The last traffic analysis we made was with a DOTA[explain what it is] web match.
+We saw that for that type of gaming session, the packet size is about \# bytes and involves both TCP and UDP ports.
+  \\
+  \\
   For every networks performance we have tryed to develop a specific solution. The OpenFlow main goal is to centralize controll and software
   complexity so the routerboard can made only some easy function in orther to contain the hardware complexity and mantainly a good speed\cite{qos_paper}.
   Il che ha portato a dover utilizzare stratagemmi.
