@@ -67,7 +67,7 @@
 
 \usepackage{placeins}
 
-\mainmatter
+%\mainmatter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,34 +77,37 @@
 \IEEEauthorblockA{Department of Information Engineering, University of Padova -- Via Gradenigo, 6/b, 35131 Padova, Italy\\Email: {\tt\{pittaroa,masomatt\}@dei.unipd.it}
 }}
 
-\maketitle
+\maketitle		
 
 \begin{abstract}
-Quality of Service(QoS) in existing network architectures is an ongoing problem.
-A lot of researcher and industries try to solve this problem with many solution but a lot of them are too
-expensive other failed or are not implemented.
-Software Defined Networking(SDN) paradigm has emerged in response to limitations of traditional networking architectures.
-The main advantages of SDN are centralized global network view. This particular features have got attention of researchers to improve QoS.
-In questo report mostreremo quali sono stati i principali risutati raggiunti e i problemi incontrati nella realizzazione di
-un applicativo SDN in grado di supportare un servizio di tipo QoS.
-Lo standard OpenFlow e il controller python POX largamente diffuso sono stati gli strumenti che hanno reso possibile la
-realizzazione di quest'esperienza pur mostrando i limiti dovuti all'utilizzo di una tecnologia nuova e in fase di ricerca.
-%translate
+Quality of Service (QoS) in existing network architectures is an ongoing problem.
+A lot of researchers and industries tried to solve this problem and found different solutions but some of them are too
+expensive other failed or were not implemented.
+Software Defined Networking (SDN) paradigm has emerged in response to traditional networking architecture's limitations.
+The main advantage of SDN is a centralized global network view. This particular feature pushed researchers to keep on improving QoS.
+
+In this report we will focus on two different aspects; all problems we faced during our attempt to create a based SDN application able to
+support a QoS service and the results we achieved.
+
+OpenFlow standard and python POX controller, which is largely spread, were used as instruments to make this experience possible,
+despite the limit of using a new type of tecnology still in the research phase.
+%corretto
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-Software-defined networking (SDN) is way to manage networks that separates the control plane from the forwarding plane.
-SDN offers a centralized view of the network, giving an SDN Controller the ability to act as the “brains” of the network.
+Software-defined networking (SDN) is a way to manage networks that separates the control from the forwarding plane.
+SDN offers a centralized view of the network, giving an SDN Controller the ability to act as the “brain” of the network.
 The SDN Controller relays information to switches and routers via southbound APIs, and to the applications with northbound APIs.
-One of the most well-known protocols used by SDN Controllers is OpenFlow, however, it isn’t the only SDN standard, but it is widely accepted.
-Centralized, programmable SDN environments can easily adjust to the rapidly changing needs of businesses. SDN can lower costs and limit
+One of the most well-known protocols used by SDN Controllers is OpenFlow, widely accepted even if it isn’t the only SDN standard. 
+Centralized, programmable SDN environments can easily adjust to the rapidly changing business'needs. SDN can reduce costs and restrict
 wasteful provisioning, as well as provide flexibility and innovation for networks.
-\#TODO da completare
-  \subsection{OpenFlow}
-  During 2006 thanks to M. Casado was developed Ethane a new network architecture on this conncept during 2011 was bord the Open Network Foundatin.
-  This is a no profit association that would innovate SDN and standardize OpenFlow protocol whit relatives tecnology \cite{ONF}.
-  The first version of OpenFlow is 1.0.0 release on 2009 but the last standardized version is v1.5.1 approved on march 2015 \cite{ONF_report}.
-  \#TODO da sistemare
+%corretto
+\subsection{OpenFlow}
+  During 2006 ,thanks to M. Casado, a new network architecture was developed, called Ethane.
+  On this conncept was born, during 2011, the Open Network Foundation, a no profit association that would innovate SDN and standardize OpenFlow protocol whit relatives tecnology \cite{ONF}.
+  The first version of OpenFlow is 1.0.0 was released on 2009 but the last standardized version v1.5.1 was approved only on march 2015 \cite{ONF_report}.
+  %corrects
+  %todo spostare l'immagine correttamente
 \begin{figure}[!h]
  \centering
  \includegraphics[scale=0.58]{images/of.jpg}
@@ -113,31 +116,34 @@ wasteful provisioning, as well as provide flexibility and innovation for network
 \end{figure}
   \\
   \textbf{Openflow 1.0 messages}
-Openflow defines a number of messages between a controller and a switch. Now there will be presented some messages we exploited:\cite{openflow}
+  
+Openflow defines a number of messages between a controller and different switches. Now there will be presented some messages we exploited:\cite{openflow}
 \begin{itemize}
 
 \item \emph{Hello} \newline This message is sent both from the controller and the switch who is looking for a controller after it
 	is turned on. If the switch sent the message, the controller, after receiving it, will send the FeatureReq packet to that switch.
-\item \emph{FeatureReq} \newline this is the message that the controller sends to a switch to know its abilities. The switch
+\item \emph{FeatureReq} \newline This is the message that the controller sends to a switch to get to know its abilities. The switch
 	respond with a FeatureRes and when this last message reaches the pox controller, the ConnectionUp event is raised.
 	With the featureRes the controller will know how many ports a switch has and their properties (e.g. if they are connected, link speed,...), the flow table capabilities and the supported statistics.
 \item \emph{PortStatus} \newline this message is sent from a switch to the controller, to notify that some ports has changed their status.
-		It's useful to check if a port has someone connected
-\item \emph{StatsReq} \newline The controller will send this message to request the statistics. The payload of the message contains the type of statistic the controller want to know.
-		The switch then will answer with the Stats reply, if it supports that type of stat. It will send a Bad_Request message if not.
-\item \emph{PacketIn} \newline This message is sent from the switch to the controller whenever a packet arrives and it doesn't match
-		any rule. The controller can decide to ignore that type of message, insert this message in a PacketOut message, or set
+		It's useful to check if a port has someone connected to it.
+\item \emph{StatsReq} \newline The controller will send this message to request the statistics. The payload of the message contains the type of 
+statistic the controller wants to know.
+		The switch then will answer with the Stats reply, if it supports that type of stat. If not, The switch will send a Bad_Request
+		message.
+\item \emph{PacketIn} \newline This message is sent from the switch to the controller everytime a packet arrives without matching any rule.
+The controller can decide to ignore that type of message, insert this message in a PacketOut message, or set
 		a flow rule for packets like this using a FlowMod.
-\item \emph{PacketOut} \newline This message is sent from the controller to forward a packet, which is the payload of the PacketOut message, to some
-		port(s).
-\item \emph{FlowMod} \newline This message set, delete or modify a rule inside a switch. Is the message that allows routing.
+\item \emph{PacketOut} \newline This message is sent from the controller to forward a packet, which is the payload of the PacketOut message,
+to some ports.
+\item \emph{FlowMod} \newline This message set, delete or modify a rule inside a switch.This is the message that allows routing.
 \\
 \\
 \end{itemize}
 
 \textbf{Forwarding table:}
 \begin{itemize}
- \item \texttt{match fields:} sono i valori con cui i pacchetti vengono confrontati per cercare corrispondenze. Contengono la porta d'ingresso, l'intestazione del pacchetto,
+ \item \texttt{match fields:} fields that compare packets in order to look fo sono i valori con cui i pacchetti vengono confrontati per cercare corrispondenze. Contengono la porta d'ingresso, l'intestazione del pacchetto,
  e altri campi opzionali;
  \item \texttt{priority:} precedenza nel caso di voci con pi\`u corrispondenze;
  \item \texttt{counter:} incrementato ogni qualvolta che viene riscontrata la corrispondenza con un pacchetto;
