@@ -19,7 +19,8 @@
 % Compact lists
 %\let\labelindent\relax
 \usepackage{enumitem}
-
+\usepackage{fancyhdr}
+\fancyfoot[C]{\thepage}
 %tikz figures
 \usepackage{tikz}
 \usetikzlibrary{automata,positioning,chains,shapes,arrows}
@@ -66,7 +67,7 @@
 
 \usepackage{placeins}
 
-
+\mainmatter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -136,7 +137,7 @@ Openflow defines a number of messages between a controller and a switch. Now the
 
 \textbf{Forwarding table:}
 \begin{itemize}
- \item \texttt{match fields:} sono i valori con cui i pacchetti vengono confrontati per cercare corrispondenze. Contengono la porta d'ingresso, l'intestazione del pacchetto, 
+ \item \texttt{match fields:} sono i valori con cui i pacchetti vengono confrontati per cercare corrispondenze. Contengono la porta d'ingresso, l'intestazione del pacchetto,
  e altri campi opzionali;
  \item \texttt{priority:} precedenza nel caso di voci con pi\`u corrispondenze;
  \item \texttt{counter:} incrementato ogni qualvolta che viene riscontrata la corrispondenza con un pacchetto;
@@ -183,7 +184,7 @@ we can redirect all the traffic from an internal host to the internet with a pre
 path. This means that only one PacketIn will be sent to the controller if a host is surfing the network.
 
 Another limitation is the no default routing from a source to a destination: when an host
-is plugged to a network of SDN switches, it won't know the destinatio. The only way it can
+is plugged to a network of SDN switches, it won't know the destination. The only way it can
 discover the host is by flooding the network with that packet, but this makes each switch raise a PacketIn message to the controller
 slowing down the startup of the connection. This thing doesn't happen with traditional routing, because each router knows
 the network disposition, but doesn't know each host how much traffic is doing. For that the administrator need to put a firewall.
@@ -191,10 +192,10 @@ The last one isn't needed, as the controller can set a switch to drop all the pa
 
 
 \subsection{Related Work}
-  The work presented in 
-"Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad \cite{farzaneh} 
+  The work presented in
+"Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad \cite{farzaneh}
 has been implemented to improve the controller speed and efficiency as it make it more reactive.
-The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found 
+The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found
 in the paper called "Getting traffic statistics from network devices in an SDN environment using OpenFlow" by D.J. Hamad \& others. [ put note here]
 For traffic analysis we haven't found any paper describing the characteristics of
 some types of flows, so we used our PCs to sniff the traffic. Traffic analysis will be discussed in section.
@@ -205,68 +206,81 @@ The main gool of this experience is to develop a small SDN network in a lab with
 in orther to understand in a practical level how to implement a \textit{Quality of Service, \textbf{QoS}} service in a SDN scenarios.
 Our network have to manage traffic with a global scope, in order to evolve in base on different parameters.
 Moreover the SDN network need to interact with world wide web efficently.
+\subsection{Connectivity}\label{sec:connectivity}
+First thing to do is provide connectivity, letting the controller know the connection of a host and avoiding packet to be lost while the first
+add the computer to its graphes and try to add the rules to let the traffic go from the source to the destination. This has been done doing a
+\textit{controlled flooding}: when a PacketIn event arrives at the controller, this look into the data structure that saves the nodes connected.
+\\ If source and destination nodes are already found, it set the flow rules from the source node' switch to the destination node switch. To the latter,
+a PacketOut message is prepared with inside the packet arrived inside the PacketIn event and with destination the port of the destination switch connected
+to the destination node. Then the message is sent to the destination switch, so that the first packet is not lost.
+If, instead, the destination node is not found, the controller sends to the switch that generated the PacketIn event a PacketOut message
+with destination all the ports of the switch itself and with payload, the message that arrived within the PacketIn message.
+To avoid the network to be filled of the only packet sent, we kept the information regarding the switches on which the packet that was flooded:
+if a PacketIn message arrives at the controller and both the packet and the switch got a PacketOut message within 2 seconds, the controller doesn't
+do anything, as this is a loop.
+\\ So this approach allowed us to make the network unaware that it's not a legacy one and allowed connectivity to be provided.
 %correggere
-  \subsection{Adaptability of the network}
-  Made Network Adaptable means poter dirottare il traffico in real time to ensure a lot of demands. For example we have to avoid link congestion,
-  but we can prefer reroute some hosting traffic to worsen it's performance because  it is the traffic we don't want to encourage.
-  To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a
-  global scope.
-  The performance of a single connection and entire network can ensure various type of metrics.
-  In order to ensure the traffic shaping based on network informations, there is a need of a structure, 
-  automatically updatable, where the link statistics can be saved to allow the best path for a data stream. The best metric will be described below.
-  %  assicurare queste ci serve una struttura dati che si aggiorna costantemente nella quale immagazzinare le statistiche dei link
-  % in modo all'occorrenza di trovare il percordo migliore per ogni singolo flusso dati.
-  \#TODO MATTEO
-  \subsection{Exterior comunication}
-  \#TODO pitt
-	Our network needed to be able to communicate with the external internet to be useful for a demo which demonstrate the capabilities of a SDN network.
-	The first thing we needed to accomplish was to make the controller aware of what switch and which port of the switch is connected to the external internet:
-	to do so, we allowed our controller to be able to receive in-line parameters. The two parameters we needed the controller to be aware were the mac address of the
-	port of a switch that is connected to the link and the network address of our network, to let the controller know if a request from a host was meant to another host
-	within the network or the data stream was intended to the internet.
-	In this way the host connected to the inner network can surf the net regardless of which type of devices are switching and routing the traffic they are generating.
+\subsection{Adaptability of the network}
+Made Network Adaptable means poter dirottare il traffico in real time to ensure a lot of demands. For example we have to avoid link congestion,
+but we can prefer reroute some hosting traffic to worsen it's performance because  it is the traffic we don't want to encourage.
+To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a
+global scope.
+The performance of a single connection and entire network can ensure various type of metrics.
+In order to ensure the traffic shaping based on network informations, there is a need of a structure,
+automatically updatable, where the link statistics can be saved to allow the best path for a data stream. The best metric will be described below.
+%  assicurare queste ci serve una struttura dati che si aggiorna costantemente nella quale immagazzinare le statistiche dei link
+% in modo all'occorrenza di trovare il percordo migliore per ogni singolo flusso dati.
+\#TODO MATTEO
+\subsection{Exterior comunication}
+Our network needed to be able to communicate with the external internet to be useful for a demo which demonstrate the capabilities of a SDN network.
+The first thing we needed to accomplish was to make the controller aware of what switch and which port of the switch is connected to the external internet:
+to do so, we allowed our controller to be able to receive and process in-line parameters. We provided two parametes to the controller, so that
+it could recognize where the traffic to the internet need to be sent. Theese two parameters were the mac address of the
+port of a switch that is connected to the link and the network address of our network, to let the controller know if a request from a host was meant to another host
+within the network or the data stream was intended to the internet. We provided only one gateway, as the Routeboard had few ports available for the packet switching
+and only four SDN-capable switches to be able to simulate a real network that was generating traffic.
 
 
 \section{Instrument}\label{sec:instrument}
-  \subsection{Controller}
-  The controller that we use is POX, the software is opensource and it is write with Python, it is based on SDN and support OpenFlow.
-  The software use the version 2.7 of Python.
-  It's repository is at this link \url{https://github.com/noxrepo/pox} and a lot of documentation about the progect
-  is present at this link \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}.
-  The only problem to use this controller is that it support only the first version of OpenFlow1.0.
-  \\
-  The controller run inside a VirtualMachine on our personal computer,
-  the VM is offered by SDN hub on this site: \url{http://sdnhub.org/tutorials/sdn-tutorial-vm/}.
-  This VM is a 64-bit Ubuntu 14.04 that has a number of SDN software and tools installed.
-  % \#TODO matteo da correggere e completare
-  \subsection{Router Board}
-  \begin{figure}[!h]
- \centering
- \includegraphics[scale=0.30]{images/rboard.png}
- \caption{\emph{Experience scenario}}
- \label{fig:topo}
-  \end{figure}
-  
-  The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualize an OpenFlow switch that support
-  OpenFlow v1.0\cite{routerboard_doc}.
-  \begin{itemize}
+\subsection{Controller}
+The controller that we use is POX, the software is opensource and it is write with Python, it is based on SDN and support OpenFlow.
+The software use the version 2.7 of Python.
+It's repository is at this link \url{https://github.com/noxrepo/pox} and a lot of documentation about the progect
+is present at this link \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}.
+The only problem to use this controller is that it support only the first version of OpenFlow1.0.
+\\
+The controller run inside a VirtualMachine on our personal computer,
+the VM is offered by SDN hub on this site: \url{http://sdnhub.org/tutorials/sdn-tutorial-vm/}.
+This VM is a 64-bit Ubuntu 14.04 that has a number of SDN software and tools installed.
+% \#TODO matteo da correggere e completare
+\subsection{Router Board}
+\begin{figure}[!h]
+  \centering
+  \includegraphics[scale=0.30]{images/rboard.png}
+  \caption{\emph{Experience scenario}}
+  \label{fig:topo}
+\end{figure}
+
+The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualize an OpenFlow switch that support
+OpenFlow v1.0\cite{routerboard_doc}.
+\begin{itemize}
    \item CPU		AR7161 680MHz
    \item Memory		256MB DDR SDRAM onboard memory
    \item Data storage	512MB onboard NAND memory chip, microSD card slot (on reverse)
    \item Ethernet 	Three 10/100/1000 Mbit/s Gigabit Ethernet ports supporting Auto-MDI/X
    \item Serial port 	One DB9 RS232C asynchronous serial port
-  \end{itemize}
-  \textbf{firmware} the current version is: '' da gercare col comando: system routerboard print ''
-  \newline
-  The \textbf{Operating System} that they use is MikroTik RouterOS ( cercare la versione installata) \cite{routeboard_software}.
-  \newline
-  One limitation of this routerboard is that it has only 5 ethernet port this is a limitation because consider that one of this port it is
-  used to connect conntroller and with other port we have made host and other routerboard connection.
+\end{itemize}
+\textbf{firmware} the current version is: '' da gercare col comando: system routerboard print ''
+\newline
+The \textbf{Operating System} that they use is MikroTik RouterOS ( cercare la versione installata) \cite{routeboard_software}.
+\newline
+One limitation of this routerboard is that it has only 5 ethernet port this is a limitation because consider that one of this port it is
+used to connect conntroller and with other port we have made host and other routerboard connection.
 
-  %correggere e completare Matteo
+%correggere e completare Matteo
 
 \section{Results}\label{sec:results}
-\subsection{Controller:}
+\subsection{Controller}
 We developed a controller that can handle a mesh network, which has loops, that avoid
 the traffic flooding. The controller stores the switch and the connection between them;
 knows which hosts are connected to each switch port, with the hypothesys that only one
@@ -280,12 +294,12 @@ such that all the nodes have an average throughput as lowest as possible.
 We have used some principal function released with POX controller:
 \begin{itemize}
  %\item \texttt{pox.topology.launch()} and \texttt{pox.openflow.topology.launch()} descrivere a che ci serve\cite{pox}.
- \item \texttt{pox.openflow.discovery.launch()} this function run algorithm in order to discovery the network and every time in witch some new 
+ \item \texttt{pox.openflow.discovery.launch()} this function run algorithm in order to discovery the network and every time in witch some new
  topological change occour it return an event with ( con cui ) we can update our topological knowledge.
  It does not provide the host event. For host event\cite{pox}.
- \item \texttt{pox.openflow.spanning_tree.launch()} this function is necessary with a presence of loop on topology 
- because with a spanning_tree algorithm it avoid the broadcast storm of message. When we set up \texttt{OFPP_FLOOD} like output port action in a table's 
- switch row if some spanning_tree algorithm run the \texttt{OFPP_FLOOD} is only theoretical infact the algorithm close some port for flooding service 
+ \item \texttt{pox.openflow.spanning_tree.launch()} this function is necessary with a presence of loop on topology
+ because with a spanning_tree algorithm it avoid the broadcast storm of message. When we set up \texttt{OFPP_FLOOD} like output port action in a table's
+ switch row if some spanning_tree algorithm run the \texttt{OFPP_FLOOD} is only theoretical infact the algorithm close some port for flooding service
  on the switch in orther to avoid loop\cite{pox}.
 \end{itemize}
 \subsection{Real Lab Scenario}
@@ -298,7 +312,7 @@ The topological scenario in which we have set up experience is the next:
 \end{figure}
 
 We have use 4 MikroTik Router board that were provided us in the Communication Networks Lab at DEI in University of Padua.
-The 4 routerboard is connected each other in order to design a loop. Every sigle board connect two host and is connected with a legacy switch that provide 
+The 4 routerboard is connected each other in order to design a loop. Every sigle board connect two host and is connected with a legacy switch that provide
 to logically connected with controller.
 
 \subsection{Graph and Network structures}
@@ -354,10 +368,10 @@ We saw that for that type of gaming session, the packet size is about \# bytes a
 Monitoring round-trip time provides important insights for network troubleshooting and traffic engineering.
 The  common  monitoring  technique  is  to  actively  send  probe packets  from  selected  vantage  points  (hosts  or  middleboxes).
 In traditional  networks, the control over the network routing is
-limited,  making  it  impossible  to  monitor  every  selected  path. The  emerging  concept  of  Software  Defined  Networking  sim-plifies 
+limited,  making  it  impossible  to  monitor  every  selected  path. The  emerging  concept  of  Software  Defined  Networking  sim-plifies
 network  control.  However,  OpenFlow,  the  common  SDN protocol,   does   not   support   RTT   monitoring   as   part   of   its
 specification. In this experience we have tryed to emply an tecnic to escape this problem\cite{rtt}.
-\newline The idea is to measure the time that occure from sending a packet from controller to a switch and the time in which the packet return from 
+\newline The idea is to measure the time that occure from sending a packet from controller to a switch and the time in which the packet return from
 an other switch.
 \\
 \newline First we have to discovery round trip time from controller to every single switch on our topology.
@@ -372,7 +386,7 @@ option and when the message return to the controller we stop the timer and calcu
 \newline
 If we need to calculate the delay on a specific link, the rtt has to calculate with the headed switch of this link.
 \\
-\newline 
+\newline
 Now we create a proper message with unique identifier number, we start a timer \texttt{TM1} and then send this message to a first switch specifing the output port.
 Then when the packet comes to the second switch it identify the particular message and sends to the controller that stops it's dedicated timer \texttt{TM2}.
 \newline This part required a particolar flow entry on the second switch in orther to send to the controller only some particulare packet.
@@ -390,87 +404,91 @@ Then when the packet comes to the second switch it identify the particular messa
 \\
 \\
 Teorethically this method must works but in practice there are a lot of delay introduce from computational concestion on the virtualized controller.
-What we observe is a estimated delay like some seconds that is impossible, infact if we made some \texttt{ping test} from one host to another host 
+What we observe is a estimated delay like some seconds that is impossible, infact if we made some \texttt{ping test} from one host to another host
 in this SDN network we realize delay around 3ms.
 \\
 
 		\subsubsection{Link Capacity}
 
-		\#TODO andrea
-		The first data that was collected was the actual link capacity, which depends both on the cable used to connect
-		different devices and the effective capacity for each ethernet port linked by the cable itself. Everytime a device supporting
-		openflow connects to the controller, it gives to the latter information about its status and its capabilities. One of them is
-		the link capacity in three ways: the first is the \textit{supported} capacity, which is the phisical maximum capacity, the second is the
-		\textit{advised} capacity, which name describes itself and the latter is the \textit{current} one. We choose to save the last one,
-		as it gives the most useful about the link state. This information, moreover, is the one that non-SDN switches use to choose the \textit{metric}
-		parameter. The simulation with Mininet showed us that this type of information can be used, but the Routeboards didn't support it.
-		As a matter of fact, we weren't able to exploit this capacity in our network realization.
+	\#TODO andrea
+	The first data that was collected was the actual link capacity, which depends both on the cable used to connect
+	different devices and the effective capacity for each ethernet port linked by the cable itself. Everytime a device supporting
+	openflow connects to the controller, it gives to the latter information about its status and its capabilities. One of them is
+	the link capacity in three ways: the first is the \textit{supported} capacity, which is the phisical maximum capacity, the second is the
+	\textit{advised} capacity, which name describes itself and the latter is the \textit{current} one. We choose to save the last one,
+	as it gives the most useful about the link state. This information, moreover, is the one that non-SDN switches use to choose the \textit{metric}
+	parameter. The simulation with Mininet showed us that this type of information can be used, but the Routeboards didn't support it.
+	As a matter of fact, we weren't able to exploit this capacity in our network realization.
 		\\
 		\\
-    \subsubsection{Throughput}
-	  \#TODO andrea
-		Using the flow statistics, we analyzed the traffic going through a link and, with a simple division, we got the normalized throughput.
-		We exploited the information given by the switches with the match structure: this means that we used the throughput for the TCP traffic,
-		the one for the UDP and for each of them we could know toward which IP the traffic is directed or is from. This was exploited with mininet
-		simulations, but not in the set up in the laboratory. With the latter, we used the statistics as an indicator of the bitrate of a link
-		and divided the host to categories based on it.
+  \subsubsection{Throughput}
+	\#TODO andrea
+	Using the flow statistics, we analyzed the traffic going through a link and, with a simple division, we got the normalized throughput.
+	We exploited the information given by the switches with the match structure: this means that we used the throughput for the TCP traffic,
+	the one for the UDP and for each of them we could know toward which IP the traffic is directed or is from. This was exploited with mininet
+	simulations, but not in the set up in the laboratory. With the latter, we used the statistics as an indicator of the bitrate of a link
+	and divided the host to categories based on it.
 \\
-		\subsubsection{Packet error rate}
+\subsubsection{Packet error rate}
 
-		The port statistics given by the switches contains different informations about the state of each port in a switch. To classify a link for its
-		reliability, we divided the number of packets with erroneous symbols that couldn't be corrected with a FEC by the total number of packets that were sent,
-		getting the packet error rate. The choice we made when exploiting this statistic was privileging the gaming and normal traffic, wherease the
-		heavy traffic was directed to links with highest packet error rate.  As the switches exchanges a packet before recognizing most of the error, both because the
-		phisical error are corrected using blocks coding and other error are found using a \textit{Frame Check Sequence} like CRC, the byte error were considered worse as
-		those are indirect measures themself and the error derived from the calculations could grow up.
-		\#TODO andrea
+The port statistics given by the switches contains different informations about the state of each port in a switch. To classify a link for its
+reliability, we divided the number of packets with erroneous symbols that couldn't be corrected with a FEC by the total number of packets that were sent,
+getting the packet error rate. The choice we made when exploiting this statistic was privileging the gaming and normal traffic, wherease the
+heavy traffic was directed to links with highest packet error rate.  As the switches exchanges a packet before recognizing most of the error, both because the
+phisical error are corrected using blocks coding and other error are found using a \textit{Frame Check Sequence} like CRC, the byte error were considered worse as
+those are indirect measures themself and the error derived from the calculations could grow up.
+\#TODO andrea
 \\
-  \subsection{Route changing} %cambio rotte
+\subsection{Route changing} %cambio rotte
 
-  \#TODO andrea
-	For each statistic we got and each parameter we obtained, we changed the weight of the graphs. Every graph we used had a specific weight, so the
-	Dijkstra algorithm for a weighted graph gave different minimum path between two hosts. From the parameter we saved, we choose to change the
-	route to reach the destination and viceversa. The traffic follow the same path, in both the directions and depends only on the type of traffic:
-	we choose to set the minimum unweighted path if no statistics were available, the minimum throughput path for the standard traffic, the minimum
-	delay for the gaming one and the maximum packet error rate for the heavy traffic generated by a host.
-	Two threshold were chosen based on the traffic analysis described on Sec. \ref{subsec:traf} which are 200 bytes/s for the gaming traffic and one megabyte/s
-	when the node is considered in heavy traffic. Those two threshold were made as they are average values and considering that our network is made of few really fast link,
-	so on one side the lower limit is sufficient not to consider gaming traffic to be a normal traffic, wherease it's easy to reach the high level of traffic load between two machines.
-	The changing of the path were made only if the last change happened before one minute because the torrent traffic has, in its protocol, a discovery
-	algortithm. This means that if a lot of changes were made, most of the traffic generated by the peer to peer, is the control one and the result is that the
-	load in the network will be heavy and last longer.
+\#TODO andrea
+For each statistic we got and each parameter we obtained, we changed the weight of the graphs. Every graph we used had a specific weight, so the
+Dijkstra algorithm for a weighted graph gave different minimum path between two hosts. From the parameter we saved, we choose to change the
+route to reach the destination and viceversa. The traffic follow the same path in both the directions and depends only on the type of traffic:
+we choose to set the minimum unweighted path if no statistics were available, the minimum throughput path for the standard traffic, the minimum
+delay for the gaming one and the maximum packet error rate for the heavy traffic generated by a host.
+Two threshold were chosen based on the traffic analysis described on Sec. \ref{subsec:traf} which are 200 bytes/s for the gaming traffic and one megabyte/s
+when the node is considered in heavy traffic. Those two threshold were made as they are average values and considering that our network is made of few really fast link,
+so on one side the lower limit is sufficient not to consider gaming traffic to be a normal traffic, wherease it's easy to reach the high level of traffic load between two machines.
+The changing of the path were made only if the last change happened before one minute because the torrent traffic has, in its protocol, a discovery
+algortithm. This means that if a lot of changes were made, most of the traffic generated by the peer to peer, is the control one and the result is that the
+load in the network will be heavy and last longer.
 
-  \subsection{ARP solution} 
+\subsection{ARP solution}
 
-  During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
-  This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
-  HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
-  hiher the collision range. The bridges limits their collision range to the port. With openflow each switching unit can
-  act as a bridge or as a router. In both cases analyses the header of the L2 packet L3 packet and some of the L4 header.
-  If it has the rule to forward the packet, it will act as declared in the most specific matching rule. Otherwise it will
-  send to the controller a PacketIn and the controller will act as programmed. If an host want to communicate to another host whithin
-  the network, it sends the packet to the line and then the switch will check in its tables and execute the actions of the match found.
-  For an IP network, it will check the path to reach a destination and then send to the defined output port. The mac address in this case
-  became useless, as the connection is point to point. So, knowing the destination layer2 address is useless as the switch can act
-  regardless of it. The only thing the switch need to know is the layer2, layer 3 addresses and, at most, the layer 4 address.
-  This can be seen by a reader as a violation of the layers in the ISO/OSI stack, but to exploit the potentials of the SDN approach,
-  this is necessary. 
+During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
+This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
+HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
+it higher the collision range. The bridges limits their collision range to the port. With openflow each switching unit can
+act as a bridge or as a router. In both cases analyses the header of the L2 packet L3 packet and some of the L4 header.
+If it has the rule to forward the packet, it will act as declared in the most specific matching rule. Otherwise it will
+send to the controller a PacketIn and the controller will act as programmed. If an host want to communicate to another host whithin
+the network, it sends the packet to the line and then the switch will check in its tables and execute the actions of the match found.
+For an IP network, it will check the path to reach a destination and then send to the defined output port. The mac address in this case
+became useless, as the connection is point to point. So, knowing the destination layer2 address is useless as the switch can act
+regardless of it. The only thing the switch need to know is the layer2, layer 3 addresses and, at most, the layer 4 address.
+This can be seen by a reader as a violation of the layers in the ISO/OSI stack, but to exploit the potentials of the SDN approach,
+this is necessary.
 
-  \subsection{Default Gw problem}
+\subsection{Default Gateway}
+Analyzing the traffic while we were trying the controller on real machines in the lab, we have tried to set the default gateway to
+other machines that were connected to the SDN network, but not to the internet. We proved that the controller can redirect correctly the
+traffic to the internet. This means that
+computers don't need anymore to set a gateway to reach another network as the controller and the switches will redirect the traffic
+properly, according to the rules set by the first. The controller must only know which switch ports are connected to the
+internet and then add them to the path. I this way, the controller can set a path to reach it and provide connectivity with
+a traffic shaping policy and/or differentiate the traffic from and to different networks.
 
-  The computers don't need anymore to set a gateway to reach another network as the controller and the switches will redirect the traffic
-  properly, according to the rules set by the first. The controller must only know which switch ports are connected to the
-  internet and then add them to the path. in this way, the controller can set a path to reach it and provide connectivity with
-  a traffic shaping policy and/or differentiate the traffic from and to different networks.
-  \#TODO andrea
+\subsection{Ip switching in pox}
 
-  \subsection{Ip switching in pox}
-
-  \#TODO andrea
-	One of the problem encountered was that, if an host is already found by pox and there is a PacketIn event, the core of the controller
-	switches the source and the destination IP and MAC address with the source one. The problem was partially solved, checking out the
-	parameters known by the controller, i.e. if the two host are connected to two different switches and the controller switches the source with the
-	destination address, we can switch it back; the result is that the PacketIn event now has correct informations.
+During our tests, both with Mininet and in the lab, we found out that the core of POX, when a PacketIn event occoures, switches the source and the destination addresses,
+both MAC and IP, if one of the hosts is already known. We weren't able to understand in which point of the code of POX  and why it happens.
+% One of the problem encountered was that, if an host is already found by pox and there is a PacketIn event, the core of the controller
+% switches the source and the destination IP and MAC address with the source one.
+The problem was partially solved, checking out the
+parameters known by the controller, i.e. if the two host are connected to two different switches and the controller switches the source with the
+destination address, we can switch it back; the result is that the PacketIn event now has correct informations.
+If the two host are in the same switch, the problem is solved using a controlled packet flooding, described in section \ref{sec:connectivity}
 
 \section{Conclusions}\label{sec:conclusion}
 Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
@@ -489,14 +507,14 @@ ehi
 	\bibitem{ONF_report} v1.5.1 OpenFlow report \url{https://www.opennetworking.org/sdn-resources/technical-library}
 	\bibitem{routerboard_doc} RouterBOARD 450G MikroTik documentation \url{http://www.routerboard.sk/files/pdf/rb450g_manual.pdf}
 	\bibitem{routeboard_software} RouterBOARD MikroTik Software \url{https://mikrotik.com/software}
-	\bibitem{farzaneh}  Efficient Topology Discovery in Software Defined Networks F. Pakzad, M. Portmann, W. L. Tan and J. Indulska 
+	\bibitem{farzaneh}  Efficient Topology Discovery in Software Defined Networks F. Pakzad, M. Portmann, W. L. Tan and J. Indulska
 	School of ITEE, The University of Queensland Brisbane, Australia \url{https://www.researchgate.net/publication/271508903_Efficient_Topology_Discovery_in_OpenFlow-based_Software_Defined_Networks}
 	\bibitem{qos_paper} OpenNetMon: Network Monitoring in OpenFlow Software-Defined Networks Niels L.
-	M. van Adrichem, Christian Doerr and Fernando A. Kuipers Network Architectures and Services, Delft University of Technology 
+	M. van Adrichem, Christian Doerr and Fernando A. Kuipers Network Architectures and Services, Delft University of Technology
 	Mekelweg 4, 2628 CD Delft, The Netherlands \url{https://pdfs.semanticscholar.org/ea94/7a9334484ee4c3bb6bcfb4d1590aece1b178.pdf}
 	\bibitem{rtt} Efficient Round-Trip Time Monitoring in OpenFlow Networks A. Atary A. Bremler-Barr Interdisciplinary Center Herzliya \url{http://www.deepness-lab.org/pubs/infocom2016_grami.pdf}
-	 
-	
+
+
 	\end{thebibliography}
 
 \end{document}
