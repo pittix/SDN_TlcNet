@@ -1,4 +1,4 @@
-\documentclass[conference,10pt]{IEEEtran}
+\documentclass[article,10pt]{IEEEtran}
 %\documentclass[conference,draft,onecolumn]{IEEEtran}
 % useful packages, copy and paste from diff sources
 
@@ -67,6 +67,8 @@
 
 \usepackage{placeins}
 
+
+\setcounter{page}{1}
 %\mainmatter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -117,7 +119,7 @@ wasteful provisioning, as well as provide flexibility and innovation for network
   \\
   \textbf{Openflow 1.0 messages}
   
-Openflow defines a number of messages between a controller and different switches. Now there will be presented some messages we exploited:\cite{openflow}
+Openflow defines a number of messages between a controller and different switches. Now there will be presented some messages we exploited\cite{openflow}:
 \begin{itemize}
 
 \item \emph{Hello} \newline This message is sent both from the controller and the switch who is looking for a controller after it
@@ -143,20 +145,22 @@ to some ports.
 
 \textbf{Forwarding table:}
 \begin{itemize}
- \item \texttt{match fields:} fields that compare packets in order to look fo sono i valori con cui i pacchetti vengono confrontati per cercare corrispondenze. Contengono la porta d'ingresso, l'intestazione del pacchetto,
- e altri campi opzionali;
- \item \texttt{priority:} precedenza nel caso di voci con pi\`u corrispondenze;
- \item \texttt{counter:} incrementato ogni qualvolta che viene riscontrata la corrispondenza con un pacchetto;
- \item \texttt{istructions:} istruzioni da aggiungere all'\emph{Action-Set} o modifiche al flusso della pipeline;
- \item \texttt{timeouts:} massimo tempo per cui lo switch tiene in memoria questa voce, altre il quale la voce viene scartata;
- \item \texttt{cookie:} valori utilizzati per statistiche riguardo la singola voce, quindi non vengono considerati nell'elaborazione dei pacchetti dati;
- \item \texttt{flags:} utilizzate per differenziare la gestione della voce;
+ \item \texttt{match fields:} fields that compare packets in order to look for correspondences. They contain the in_port, the packet's header and others optional fields.
+ \item \texttt{priority:} priority in case of rows with more than one correspondence;
+ 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ \item \texttt{counter:} this field was improved every time a correspondence with a packet was matched;
+ \item \texttt{istructions:} a set of action that the switch add on \emph{Action-set} of packet or modification on pipeline flux;
+ \item \texttt{timeouts:} this is the maximum time afther that the rule exired;
+ %\item \texttt{cookie:} valori utilizzati per statistiche riguardo la singola voce, quindi non vengono considerati nell'elaborazione dei pacchetti dati;
+ \item \texttt{flags:} this field is use to differentiate the management of the voice;
  \\
  \\
 \end{itemize}
 
 \textbf{Match Constraints}
-principal match method that we can used with OpenFlow v1.0:
+
+these are theprincipal match method that we can use with OpenFlow v1.0:
 \begin{itemize}
  \item \texttt{in_port}: the port of swith;
  \item \texttt{dl_src/dl_dst}: 802.3 MAC source and destination of packet;
@@ -170,7 +174,8 @@ principal match method that we can used with OpenFlow v1.0:
 \end{itemize}
 
 \textbf{Action}
-With the OpenFlow v1.0 in practice we can do simply things:
+
+With the OpenFlow v1.0 in practice we can do simply things for example:
 \begin{itemize}
  \item \texttt{Output}: set output port;
  \item \texttt{SetDLSrc/Dst}: modify packet MAC address;
@@ -178,7 +183,8 @@ With the OpenFlow v1.0 in practice we can do simply things:
  \item \texttt{SetNWTos}
  \item \texttt{SetTPSrc/Dst}
 \end{itemize}
-With from OpenFlow v1.1 in poi we can modify Time To Live and other things.
+
+From OpenFlow v1.1 on we can modify Time To Live and other things that allow us to do something more.
 
 \subsection{Known Limitations}
 SDN networks are known to be underperforming with low traffic, which means that if nodes tries to connect with each other
@@ -205,12 +211,13 @@ The introduction to the statistics power in a SDN network using the OpenFlow pro
 in the paper called "Getting traffic statistics from network devices in an SDN environment using OpenFlow" by D.J. Hamad \& others. [ put note here]
 For traffic analysis we haven't found any paper describing the characteristics of
 some types of flows, so we used our PCs to sniff the traffic. Traffic analysis will be discussed in section.
-  \#TODO stato dell arte e paper di riferimento  matteo
+  \#TODO stato dell arte e paper di riferimento  prova a darci un occhio adrea please.
 
 \section{Needs and Goals}\label{sec:obb} %obbiettivi ed esigenze controllare
 The main gool of this experience is to develop a small SDN network in a lab with real hardware
-in orther to understand in a practical level how to implement a \textit{Quality of Service, \textbf{QoS}} service in a SDN scenarios.
-Our network have to manage traffic with a global scope, in order to evolve in base on different parameters.
+in orther to understand in a practical level how to implement a \textit{Quality of Service} in a SDN scenarios.
+Our network have to manage traffic with a global purpose, in order to evolve according to different parameters.
+
 Moreover the SDN network need to interact with world wide web efficently.
 \subsection{Connectivity}\label{sec:connectivity}
 First thing to do is provide connectivity, letting the controller know the connection of a host and avoiding packet to be lost while the first
@@ -227,15 +234,17 @@ do anything, as this is a loop.
 \\ So this approach allowed us to make the network unaware that it's not a legacy one and allowed connectivity to be provided.
 %correggere
 \subsection{Adaptability of the network}
-Made Network Adaptable means poter dirottare il traffico in real time to ensure a lot of demands. For example we have to avoid link congestion,
-but we can prefer reroute some hosting traffic to worsen it's performance because  it is the traffic we don't want to encourage.
+An adaptable Network has to real-time reroute traffic in order to ensure a lot of demands.
+A general efficient Network has to manage some tasks for example: avoid links congestion, reroute traffic when some malfunction accure on a link
+and running some link path algorithm. 
+In addition our network has to be adaptable in orther to ensure a QoS type of service.
+
 To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a
 global scope.
 The performance of a single connection and entire network can ensure various type of metrics.
 In order to ensure the traffic shaping based on network informations, there is a need of a structure,
-automatically updatable, where the link statistics can be saved to allow the best path for a data stream. The best metric will be described below.
-%  assicurare queste ci serve una struttura dati che si aggiorna costantemente nella quale immagazzinare le statistiche dei link
-% in modo all'occorrenza di trovare il percordo migliore per ogni singolo flusso dati.
+automatically updatable, where the link statistics can be saved to allow the best path for a data stream. 
+The best metric will be described below.
 \#TODO MATTEO
 \subsection{Exterior comunication}
 Our network needed to be able to communicate with the external internet to be useful for a demo which demonstrate the capabilities of a SDN network.
@@ -276,14 +285,14 @@ OpenFlow v1.0\cite{routerboard_doc}.
    \item Ethernet 	Three 10/100/1000 Mbit/s Gigabit Ethernet ports supporting Auto-MDI/X
    \item Serial port 	One DB9 RS232C asynchronous serial port
 \end{itemize}
-\textbf{firmware} the current version is: '' da gercare col comando: system routerboard print ''
+\textbf{firmware} the current version is: '' da cercare col comando: system routerboard print ''
 \newline
-The \textbf{Operating System} that they use is MikroTik RouterOS ( cercare la versione installata) \cite{routeboard_software}.
+The \textbf{Operating System} that they use is MikroTik RouterOS \cite{routeboard_software}.
 \newline
-One limitation of this routerboard is that it has only 5 ethernet port this is a limitation because consider that one of this port it is
-used to connect conntroller and with other port we have made host and other routerboard connection.
+One limit of this routerboard is that it has only 5 ethernet ports and this is a limit because one of these ports must be
+reserved for the connection with the controller, consequently we have to connect both host and other routerboards using only 4 ports.
 
-%correggere e completare Matteo
+%correggere
 
 \section{Results}\label{sec:results}
 \subsection{Controller}
@@ -299,9 +308,8 @@ such that all the nodes have an average throughput as lowest as possible.
 \newline
 We have used some principal function released with POX controller:
 \begin{itemize}
- %\item \texttt{pox.topology.launch()} and \texttt{pox.openflow.topology.launch()} descrivere a che ci serve\cite{pox}.
- \item \texttt{pox.openflow.discovery.launch()} this function run algorithm in order to discovery the network and every time in witch some new
- topological change occour it return an event with ( con cui ) we can update our topological knowledge.
+ \item \texttt{pox.openflow.discovery.launch()} this function runs an algorithm in order to discovery the network. Every time a new
+ topological change occur this function returns an event on POX with which we can update our topological knowledge.
  It does not provide the host event. For host event\cite{pox}.
  \item \texttt{pox.openflow.spanning_tree.launch()} this function is necessary with a presence of loop on topology
  because with a spanning_tree algorithm it avoid the broadcast storm of message. When we set up \texttt{OFPP_FLOOD} like output port action in a table's
@@ -322,15 +330,27 @@ The 4 routerboard is connected each other in order to design a loop. Every sigle
 to logically connected with controller.
 
 \subsection{Graph and Network structures}
-  In order to achieve the realtime adaptability and statistics storage we have develop ad-hoc structure.
+  In order to achieve the realtime adaptability and statistics storage we have developed ad-hoc structure.
   We use a specific python library called NetworkX \cite{networkx} to create a graph in witch we can storage ad-hoc node that represent
   resplectively switch or host element.
-  This topological structure is updated realtime thanks to connection event and link discover offered by various library.
-  ( mettere i vari eventi che sfrutto )
-  The link besides have many parameters in witch we can save network performance. To update every link parameter we have to creat ad hoc function
-  because there isn't some function constructed yet. ( sistemare frase) .
-  This type of structure allow us to run Dijkstra algorithm that return the minimum path ( in base a vari parametri ) on a nlog n time ( verificare).
-  (aggiungere qualcosa e correggere)
+  This topological structure is updated live thanks to connection event and link discover offered by POX's libraries:
+  \begin{itemize}
+   \item \texttt{_handle_LinkEvent}: from openflow.discovery an event of this type give us two type of information; a new link was added and a still present link was expired;
+   \item \texttt{_handle_ConnectionUp}: from core.openflow this event join up when a new switch was added on the network and give us
+   some information of the switch, in particular its ports configuration;
+   \item \texttt{_handle_ConnectionUp}: from core.openflow like the event explained above comes up when a switch was disconnected from the network;
+   \item \texttt{_handle_port_status}: from core.openflow this event occure when on a particular switch there is a change on its port, for example
+   some host connect or the link was expired;\\
+  \end{itemize}
+
+  The link on our network besides have many parameters in witch we can save network performance. 
+  In orther to update every link parameters we had to creat ad hoc function
+  because there isn't some function constructed yet.
+  
+  This type of structure allow us to run Dijkstra a polynomial algorithm that discover the shorthes path according to various parameters.
+  
+  The underlying figure shown the visual output of our laboratory network's topology offered by the controller, we can see 4 different switches and all of the other hosts
+  differentiated with their IP address.
   
   \begin{figure}[!h]
  \centering
@@ -339,7 +359,7 @@ to logically connected with controller.
  \label{fig:topo}
   \end{figure}
   
-  \#TODO matteo
+  %\#TODO matteo
 
   \subsection{Traffics analisis}\label{subsec:traf}
   We used laptop connected via
