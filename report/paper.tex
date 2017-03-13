@@ -143,48 +143,43 @@ to some ports.
 \\
 \end{itemize}
 
-\textbf{Forwarding table:}
+\textbf{Forwarding table}
 \begin{itemize}
- \item \texttt{match fields:} fields that compare packets in order to look for correspondences. They contain the in_port, the packet's header and others optional fields.
- \item \texttt{priority:} priority in case of rows with more than one correspondence;
- 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- \item \texttt{counter:} this field was improved every time a correspondence with a packet was matched;
- \item \texttt{istructions:} a set of action that the switch add on \emph{Action-set} of packet or modification on pipeline flux;
- \item \texttt{timeouts:} this is the maximum time afther that the rule exired;
- %\item \texttt{cookie:} valori utilizzati per statistiche riguardo la singola voce, quindi non vengono considerati nell'elaborazione dei pacchetti dati;
- \item \texttt{flags:} this field is use to differentiate the management of the voice;
+ \item \texttt{match fields:} fields that compare packets in order to look for correspondences. They contain the in_port, the packet's header and others optional fields;
+ \item \texttt{priority:} this field is used when there are rows with more than one correspondence;
+ \item \texttt{counter:} this field was improved every time a correspondence with a packet is matched;
+ \item \texttt{istruction:} a set of actions that the switch add on \emph{Action-set} of the matched packet or some instruction 
+ in order to modify the pipeline flux;
+ \item \texttt{timeout:} this is the maximum time afther which the rule expire;
+ \item \texttt{flag:} with this field we can differenciate similar voices in order to managed multiple table with similar rules;
  \\
  \\
 \end{itemize}
 
 \textbf{Match Constraints}
-
-these are theprincipal match method that we can use with OpenFlow v1.0:
+these are the principal matching method that we can use with OpenFlow v1.0:
 \begin{itemize}
  \item \texttt{in_port}: the port of swith;
  \item \texttt{dl_src/dl_dst}: 802.3 MAC source and destination of packet;
  \item \texttt{dl_type}: 802.3 EtherType;
  \item \texttt{nw_tos}: IPv4 ToS;
  \item \texttt{nw_proto}: IPv4 Protocol;
- \item \texttt{nw_src/nw_dst}: IPv4 Source/Destination;
- \item \texttt{tp_src/tp_dst}: TCP/UDP Source/Destination Port;
+ \item \texttt{nw_src/nw_dst}: IPv4 Source/Destination addresses;
+ \item \texttt{tp_src/tp_dst}: TCP/UDP Source/Destination ports;
  \\
  \\
 \end{itemize}
 
-\textbf{Action}
-
-With the OpenFlow v1.0 in practice we can do simply things for example:
+\textbf{Action} With OpenFlow v1.0 we can do basic tasks in practice, the most important are for example:
 \begin{itemize}
  \item \texttt{Output}: set output port;
- \item \texttt{SetDLSrc/Dst}: modify packet MAC address;
- \item \texttt{SetNWSrc/Dst}: modify packet IPv4 address;
- \item \texttt{SetNWTos}
+ \item \texttt{SetDLSrc/Dst}: modify packet's MAC address;
+ \item \texttt{SetNWSrc/Dst}: modify packet's IPv4 address;
+ \item \texttt{SetNWTos}: change ToS fields of message;
  \item \texttt{SetTPSrc/Dst}
 \end{itemize}
 
-From OpenFlow v1.1 on we can modify Time To Live and other things that allow us to do something more.
+From OpenFlow v1.1 on we can modify Time To Live and other options that allow us to do something more complex.
 
 \subsection{Known Limitations}
 SDN networks are known to be underperforming with low traffic, which means that if nodes tries to connect with each other
@@ -205,20 +200,22 @@ The last one isn't needed, as the controller can set a switch to drop all the pa
 
 \subsection{Related Work}
   The work presented in
-"Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad \cite{farzaneh}
-has been implemented to improve the controller speed and efficiency as it make it more reactive.
-The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found
-in the paper called "Getting traffic statistics from network devices in an SDN environment using OpenFlow" by D.J. Hamad \& others. [ put note here]
-For traffic analysis we haven't found any paper describing the characteristics of
-some types of flows, so we used our PCs to sniff the traffic. Traffic analysis will be discussed in section.
-  \#TODO stato dell arte e paper di riferimento  prova a darci un occhio adrea please.
+"Efficient topology discovery in OpenFlow-based Software Defined Networks" by F. Pakzad 
+has been implemented to improve the controller speed and efficiency as it make it more reactive \cite{farzaneh}.
+\newline The introduction to the statistics power in a SDN network using the OpenFlow protocol has been found
+in the paper called "Getting traffic statistics from network devices in an SDN environment using OpenFlow" by D.J. Hamad \& others \cite{stat}.
+\newline For traffic analysis we haven't found any paper describing the characteristics of
+some types of flows, so we used our PCs to sniff the traffic. \newline 
+Traffic analysis will be discussed in section \ref{subsec:traf}.
 
-\section{Needs and Goals}\label{sec:obb} %obbiettivi ed esigenze controllare
-The main gool of this experience is to develop a small SDN network in a lab with real hardware
-in orther to understand in a practical level how to implement a \textit{Quality of Service} in a SDN scenarios.
+
+\section{Needs and Goals}\label{sec:obb}
+The main purpose of this experience is to develop a small SDN network in a lab with physical hardware
+in order to understand how to improve a Quality of Service in a SDN scenery with a real scenario.
 Our network have to manage traffic with a global purpose, in order to evolve according to different parameters.
 
-Moreover the SDN network need to interact with world wide web efficently.
+Moreover the SDN network have to efficiently interact with the world wide web.
+
 \subsection{Connectivity}\label{sec:connectivity}
 First thing to do is provide connectivity, letting the controller know the connection of a host and avoiding packet to be lost while the first
 add the computer to its graphes and try to add the rules to let the traffic go from the source to the destination. This has been done doing a
@@ -232,20 +229,20 @@ To avoid the network to be filled of the only packet sent, we kept the informati
 if a PacketIn message arrives at the controller and both the packet and the switch got a PacketOut message within 2 seconds, the controller doesn't
 do anything, as this is a loop.
 \\ So this approach allowed us to make the network unaware that it's not a legacy one and allowed connectivity to be provided.
-%correggere
+
 \subsection{Adaptability of the network}
 An adaptable Network has to real-time reroute traffic in order to ensure a lot of demands.
-A general efficient Network has to manage some tasks for example: avoid links congestion, reroute traffic when some malfunction accure on a link
-and running some link path algorithm. 
-In addition our network has to be adaptable in orther to ensure a QoS type of service.
+A general efficient Network has to manage some tasks, for example avoiding links congestion, reroute traffic when some malfunction accure on a link
+and running a link path algorithm. 
+In addition our network has to be adaptable in order to ensure a QoS type of service.
 
-To reach this gools we need to have a global knowledge on the network and we have to modify the routing table on every routerboard with a
-global scope.
+To reach this gools we needed to have a global knowledge on the network and we had to modify the routing table on every routerboard with a
+global purpose.
 The performance of a single connection and entire network can ensure various type of metrics.
-In order to ensure the traffic shaping based on network informations, there is a need of a structure,
-automatically updatable, where the link statistics can be saved to allow the best path for a data stream. 
+In order to ensure the traffic shaping based on network informations, there is a need of an automatically updatable structure,
+where the link statistics can be saved to allow the best path for a data stream. 
 The best metric will be described below.
-\#TODO MATTEO
+
 \subsection{Exterior comunication}
 Our network needed to be able to communicate with the external internet to be useful for a demo which demonstrate the capabilities of a SDN network.
 The first thing we needed to accomplish was to make the controller aware of what switch and which port of the switch is connected to the external internet:
@@ -258,16 +255,14 @@ and only four SDN-capable switches to be able to simulate a real network that wa
 
 \section{Instrument}\label{sec:instrument}
 \subsection{Controller}
-The controller that we use is POX, the software is opensource and it is write with Python, it is based on SDN and support OpenFlow.
-The software use the version 2.7 of Python.
-It's repository is at this link \url{https://github.com/noxrepo/pox} and a lot of documentation about the progect
-is present at this link \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}.
-The only problem to use this controller is that it support only the first version of OpenFlow1.0.
+The controller that we use is POX, the software is opensource and it is written with Python, based on SDN and supports OpenFlow.
+The software uses the version 2.7 of Python.
+It's repository, together with lot of documentation regarding the project can be found at these links \url{https://github.com/noxrepo/pox}, \url{https://openflow.stanford.edu/display/ONL/POX+Wiki}.
+The only problem in using this controller is that it supports only the first version of OpenFlow1.0.
 \\
-The controller run inside a VirtualMachine on our personal computer,
-the VM is offered by SDN hub on this site: \url{http://sdnhub.org/tutorials/sdn-tutorial-vm/}.
+The controller runs inside a VirtualMachine on our personal computer and the VM is offered by SDN hub on this site: \url{http://sdnhub.org/tutorials/sdn-tutorial-vm/}.
 This VM is a 64-bit Ubuntu 14.04 that has a number of SDN software and tools installed.
-% \#TODO matteo da correggere e completare
+
 \subsection{Router Board}
 \begin{figure}[!h]
   \centering
@@ -276,7 +271,7 @@ This VM is a 64-bit Ubuntu 14.04 that has a number of SDN software and tools ins
   \label{fig:topo}
 \end{figure}
 
-The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualize an OpenFlow switch that support
+The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualizes an OpenFlow switch that supports
 OpenFlow v1.0\cite{routerboard_doc}.
 \begin{itemize}
    \item CPU		AR7161 680MHz
@@ -285,36 +280,35 @@ OpenFlow v1.0\cite{routerboard_doc}.
    \item Ethernet 	Three 10/100/1000 Mbit/s Gigabit Ethernet ports supporting Auto-MDI/X
    \item Serial port 	One DB9 RS232C asynchronous serial port
 \end{itemize}
-\textbf{firmware} the current version is: '' da cercare col comando: system routerboard print ''
-\newline
+%\textbf{firmware} the current version is: '' da cercare col comando: system routerboard print ''
+
 The \textbf{Operating System} that they use is MikroTik RouterOS \cite{routeboard_software}.
 \newline
 One limit of this routerboard is that it has only 5 ethernet ports and this is a limit because one of these ports must be
-reserved for the connection with the controller, consequently we have to connect both host and other routerboards using only 4 ports.
-
-%correggere
+reserved for the connection with the controller, that is why we have to connect both host and other routerboards using only 4 ports.
 
 \section{Results}\label{sec:results}
 \subsection{Controller}
-We developed a controller that can handle a mesh network, which has loops, that avoid
-the traffic flooding. The controller stores the switch and the connection between them;
-knows which hosts are connected to each switch port, with the hypothesys that only one
-host is connected at each port, unless the port is the one connected to the internet.
-With the use of the statistics, the controller get the status of the network and, if necessary,
-tries to adjust the traffic and put in the link with the higher path loss the torrent traffic,
-make the connection between two gaming host the one with less delay and tries to redistribute all the traffic in a way
-such that all the nodes have an average throughput as lowest as possible.
+We developed a controller that can handle a mesh network with loops, avoiding
+packets flooding. The controller stores the switch and the connection between them and knows which hosts are connected to each switch port starting from the hypothesys that only one
+host is connected to each port, unless the port is the one connected to the internet.
+With the use of statistics, the controller gets the status of the network and, if necessary,
+tries to adjust the traffic and to put in the link with the higher path loss the torrent traffic.
+On the other hand it sets up the connection for two gaming hosts going through a link with less delay and tries to redistribute all the 
+traffic in a way that all the nodes have an average throughput as lowest as possible.
 \\
 \newline
-We have used some principal function released with POX controller:
+We have used some principal functions released with POX controller:
 \begin{itemize}
- \item \texttt{pox.openflow.discovery.launch()} this function runs an algorithm in order to discovery the network. Every time a new
- topological change occur this function returns an event on POX with which we can update our topological knowledge.
- It does not provide the host event. For host event\cite{pox}.
+ \item \texttt{pox.openflow.discovery.launch()} this function runs an algorithm in order to discover the network. Every time a new
+ topological change occurs this function returns an event on POX with which we can update our topological knowledge.
+ It does not provide the host event\cite{pox}.
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  \item \texttt{pox.openflow.spanning_tree.launch()} this function is necessary with a presence of loop on topology
  because with a spanning_tree algorithm it avoid the broadcast storm of message. When we set up \texttt{OFPP_FLOOD} like output port action in a table's
  switch row if some spanning_tree algorithm run the \texttt{OFPP_FLOOD} is only theoretical infact the algorithm close some port for flooding service
- on the switch in orther to avoid loop\cite{pox}.
+ on the switch in order to avoid loop\cite{pox}.
 \end{itemize}
 \subsection{Real Lab Scenario}
 The topological scenario in which we have set up experience is the next:
@@ -325,26 +319,27 @@ The topological scenario in which we have set up experience is the next:
  \label{fig:topo}
 \end{figure}
 
-We have use 4 MikroTik Router board that were provided us in the Communication Networks Lab at DEI in University of Padua.
-The 4 routerboard is connected each other in order to design a loop. Every sigle board connect two host and is connected with a legacy switch that provide
-to logically connected with controller.
+We have use 4 MikroTik Routerboards that were provided us in the Communication's Network Lab at DEI in University of Padua.
+The 4 routerboards are connected each other in order to design a loop. Every sigle board connects two host and is connected with a 
+legacy switch which provides logically connection with controller.
 
 \subsection{Graph and Network structures}
-  In order to achieve the realtime adaptability and statistics storage we have developed ad-hoc structure.
-  We use a specific python library called NetworkX \cite{networkx} to create a graph in witch we can storage ad-hoc node that represent
-  resplectively switch or host element.
-  This topological structure is updated live thanks to connection event and link discover offered by POX's libraries:
+  In order to achieve the realtime adaptability and statistics storage we developed ad-hoc structure.
+  We used a specific Python's library called NetworkX \cite{networkx}. NetworkX allow us to create a graph in witch we can storage proper nodes
+  that represent resplectively switchs or hosts elements.
+  This topological structure is updated live thanks to connection events and links discover offered by POX's libraries:
   \begin{itemize}
-   \item \texttt{_handle_LinkEvent}: from openflow.discovery an event of this type give us two type of information; a new link was added and a still present link was expired;
-   \item \texttt{_handle_ConnectionUp}: from core.openflow this event join up when a new switch was added on the network and give us
+   \item \texttt{_handle_LinkEvent}: from openflow.discovery an event of this type give us two types of information; a new link is added and 
+   a still present link is expired;
+   \item \texttt{_handle_ConnectionUp}: from core.openflow this event join up when a new switch is added on the network and give us
    some information of the switch, in particular its ports configuration;
-   \item \texttt{_handle_ConnectionUp}: from core.openflow like the event explained above comes up when a switch was disconnected from the network;
-   \item \texttt{_handle_port_status}: from core.openflow this event occure when on a particular switch there is a change on its port, for example
-   some host connect or the link was expired;\\
+   \item \texttt{_handle_ConnectionUp}: from core.openflow like the event explained above comes up when a switch is disconnected from the network;
+   \item \texttt{_handle_port_status}: from core.openflow this event occure when on a particular switch there is a change about its ports, for example
+   some host is connected or the link is expired;\\
   \end{itemize}
 
-  The link on our network besides have many parameters in witch we can save network performance. 
-  In orther to update every link parameters we had to creat ad hoc function
+  The link on our network besides has many parameters in witch we can save network's performance. 
+  In order to update every links parameters we had to create ad hoc functionality
   because there isn't some function constructed yet.
   
   This type of structure allow us to run Dijkstra a polynomial algorithm that discover the shorthes path according to various parameters.
@@ -387,7 +382,7 @@ We saw that for that type of gaming session, the packet size is about \# bytes a
   \\
   \\
   For every networks performance we have tryed to develop a specific solution. The OpenFlow main goal is to centralize controll and software
-  complexity so the routerboard can made only some easy function in orther to contain the hardware complexity and mantainly a good speed\cite{qos_paper}.
+  complexity so the routerboard can made only some easy function in order to contain the hardware complexity and mantainly a good speed\cite{qos_paper}.
   Il che ha portato a dover utilizzare stratagemmi.
   \#TODO %riformulare
     \subsubsection{Delay}
@@ -415,7 +410,7 @@ If we need to calculate the delay on a specific link, the rtt has to calculate w
 \newline
 Now we create a proper message with unique identifier number, we start a timer \texttt{TM1} and then send this message to a first switch specifing the output port.
 Then when the packet comes to the second switch it identify the particular message and sends to the controller that stops it's dedicated timer \texttt{TM2}.
-\newline This part required a particolar flow entry on the second switch in orther to send to the controller only some particulare packet.
+\newline This part required a particolar flow entry on the second switch in order to send to the controller only some particulare packet.
 \begin{figure}[!h]
  \centering
  \includegraphics[scale=0.70]{images/rtt1.png}
@@ -539,7 +534,9 @@ ehi
 	M. van Adrichem, Christian Doerr and Fernando A. Kuipers Network Architectures and Services, Delft University of Technology
 	Mekelweg 4, 2628 CD Delft, The Netherlands \url{https://pdfs.semanticscholar.org/ea94/7a9334484ee4c3bb6bcfb4d1590aece1b178.pdf}
 	\bibitem{rtt} Efficient Round-Trip Time Monitoring in OpenFlow Networks A. Atary A. Bremler-Barr Interdisciplinary Center Herzliya \url{http://www.deepness-lab.org/pubs/infocom2016_grami.pdf}
-
+	\bibitem{stat} Getting traffic statistics from network devices in an SDN environment using OpenFlow Diyar Jamal Hamad , Khirota Gorgees Yalda, and Ibrahim Tanner Okumus
+	\url{http://itas2015.iitp.ru/pdf/1570195931.pdf};
+	
 
 	\end{thebibliography}
 
