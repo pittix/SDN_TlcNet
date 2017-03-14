@@ -73,7 +73,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{Quality of Service with Software Defined Network.}
+\title{Demo for a Quality of Service networking with Software Defined Network.}
 
 \author{\IEEEauthorblockN{Andrea Pittaro, Matteo Maso }
 \IEEEauthorblockA{Department of Information Engineering, University of Padova -- Via Gradenigo, 6/b, 35131 Padova, Italy\\Email: {\tt\{pittaroa,masomatt\}@dei.unipd.it}
@@ -340,7 +340,10 @@ gateway on the controller.
    a new host has just been connected or the link is expired;\\
   \end{itemize}
 
-  The link on our network besides has many parameters in witch we can storage network's performance. 
+  
+  The links on our network logically have many parameters in witch we can storage network's performance; in practice a NetworkX's graph support only 
+  one or two link's attributes so we have create a lots of graphs with the same topological information but different link's attributes.
+  
   In order to update every link's parameters we had to create ad-hoc functionality
   since there are not proper functions constructed before.
   
@@ -381,7 +384,7 @@ decreased to allow communication. The traffic is between the UDP port 80.
   For every networks performance we have tryed to develop a specific solution. The OpenFlow main goal is to centralize controll and software
   complexity so the routerboards can made only some easy function in order to contain the hardware complexity and mantainly a good speed\cite{qos_paper}.
   This led to the necessity of stratagems utilization.
-
+  
 \subsubsection{Delay}
 Monitoring round-trip time provides important insights for network troubleshooting and traffic engineering.
 The  common  monitoring  technique  is  to  actively  send  probe packets  from  selected  vantage  points  hosts  or  middleboxes.
@@ -428,7 +431,6 @@ in this SDN network we realize delay around 3ms.
 
 		\subsubsection{Link Capacity}
 
-	
 	The first data that was collected was the actual link capacity, which depends both on the cable used to connect
 	different devices and the effective capacity for each ethernet port linked by the cable itself. Everytime a device supporting
 	openflow connects to the controller, it gives to the latter information about its status and its capabilities. One of them is
@@ -448,7 +450,6 @@ in this SDN network we realize delay around 3ms.
 	and divided the host to categories based on it.
 \\
 \subsubsection{Packet error rate}
-
 The port statistics given by the switches contains different informations about the state of each port in a switch. To classify a link for its
 reliability, we divided the number of packets with erroneous symbols that couldn't be corrected with a FEC by the total number of packets that were sent,
 getting the packet error rate. The choice we made when exploiting this statistic was privileging the gaming and normal traffic, wherease the
@@ -457,7 +458,9 @@ phisical error are corrected using blocks coding and other error are found using
 those are indirect measures themself and the error derived from the calculations could grow up.
 
 
+
 \subsection{Route changing}
+
 
 For each statistic we got and each parameter we obtained, we changed the weight of the graphs. Every graph we used had a specific weight, so the
 Dijkstra algorithm for a weighted graph gave different minimum path between two hosts. From the parameter we saved, we choose to change the
@@ -472,7 +475,6 @@ algortithm. This means that if a lot of changes were made, most of the traffic g
 load in the network will be heavy and last longer.
 
 \subsection{ARP solution}
-
 During our analysis and in our tests, we prove that in a SDN mesh network, the ARP packets are useless.
 This type of packets is useful for a multipoint to multipoint connection where the connection is set between a
 HUB and a set of computers or between a bridge and a computer. The first case is no more in use in common networks as
@@ -498,7 +500,6 @@ internet and then add them to the path. I this way, the controller can set a pat
 a traffic shaping policy and/or differentiate the traffic from and to different networks.
 
 \subsection{Ip switching in pox}
-
 During our tests, both with Mininet and in the lab, we found out that the core of POX, when a PacketIn event occoures, switches the source and the destination addresses,
 both MAC and IP, if one of the hosts is already known. We weren't able to understand in which point of the code of POX  and why it happens.
 % One of the problem encountered was that, if an host is already found by pox and there is a PacketIn event, the core of the controller
@@ -509,9 +510,21 @@ destination address, we can switch it back; the result is that the PacketIn even
 If the two host are in the same switch, the problem is solved using a controlled packet flooding, described in section \ref{sec:connectivity}.
 
 \section{Conclusions}\label{sec:conclusion}
-Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
-ehi
-\#TODO
+% Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
+% ehi
+For this course project, the report shows how the demo was made, in particular what problem we encountered
+and what we exploited, showing what protocols could be unused in the future. We showed a possible simple data structure
+that can allow the controller to be able to know the network, its topology and which route to set, based on the traffic.
+Morover, we showed how to exploit the potentialities of the SDN network, giving particular importance on the
+statistics and the path switching capabilities.
+The multi-graph solution allowed us to connect the network and, based on its condition, choose which weight to apply
+in order to give a Quality of Service based network. With some boards that supports the newer version of Openflow
+(i.e. 1.5, the latest), the code can be ported, so it can be used with the Ryu core controller and more statistic can
+be exploited. Moreover, the controller can set more strictive rules for the flow control and can get more informations from the
+switches.
+
+% mi pare vada bene, l ultima versione di pox dovrebbe essere almeno la 1.5.1
+
 
 
 \begin{thebibliography}{99}
