@@ -346,8 +346,8 @@ gateway on the controller.
   
   This type of structure allow us to run Dijkstra's polynomial algorithm that discover the shortest path according to various parameters.
   
-  The following picture shows the visual output of our laboratory network's topology offered by the controller, we can see 4 different switches and all of the other hosts
-  differentiated with their IP addresses.
+  The following ure shown the visual output of our laboratory network's topology offered by the controller, we can see 4 different switches and all of the other hosts
+  differentiated with their IP address.
   
   \begin{figure}[!h]
  \centering
@@ -355,17 +355,18 @@ gateway on the controller.
  \caption{\emph{Experience scenario}}
  \label{fig:topo}
   \end{figure}
- 
- 
-\subsection{Traffic's Analysis}\label{subsec:traf}
-We used laptop connected via
+  
+  %\#TODO matteo
+
+  \subsection{Traffics analisis}\label{subsec:traf}
+  We used laptop connected via
 GigabitEthernet interface and Ethernet cable cat.5a to receive the traffic from the destination host.
 Our laptop has been connected via Wi-Fi to our access point via protocol 802.11n.
 No other traffic sources were active during the testing, so the router was handling only
 the traffic from laptop when sniffing traffic. The connection used was an ADSL2+ via copper.
 We did 3 type of traffic analysis: Gaming traffic, Skype® and torrent traffic. We analyzed
 \#Mb for the gaming traffic, \#Mb for the VoIP traffic and 3GB for the torrent traffic.
-The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP).
+The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP)
 
 The traffic analysis of the torrent protocol shows that the average packet size is the MTU
 (i.e. 1500bytes) and the protocol tryies to exploit all the channel capabilities. The traffic
@@ -376,17 +377,21 @@ to how many IPs, an host is connected to and if it uses UDP.
 For the VoIP we saw that the protocol uses UDP and the traffic, after a transition time, goes only between two hosts.
 The average packet size is the MTU and the protocol tryies to exploit all the channel for a better QoE.
 On another test, we tried the VoIP while a download was ongoing, and we saw that the quality
-decreased to allow communication. The traffic is between the UDP port 80.
+decreased to allow communication. The traffic is between the UDP port 80 \#\#TODO\#\# TOCHECK \#\#
 
+The last traffic analysis we made was with a DOTA[explain what it is] web match.
+We saw that for that type of gaming session, the packet size is about \# bytes and involves both TCP and UDP ports.
+  \\
+  \\
   For every networks performance we have tryed to develop a specific solution. The OpenFlow main goal is to centralize controll and software
-  complexity so the routerboards can made only some easy function in order to contain the hardware complexity and mantainly a good speed\cite{qos_paper}.
-  This led to the necessity of stratagems utilization.
-
-\subsubsection{Delay}
+  complexity so the routerboard can made only some easy function in order to contain the hardware complexity and mantainly a good speed\cite{qos_paper}.
+  Il che ha portato a dover utilizzare stratagemmi.
+  \#TODO %riformulare
+    \subsubsection{Delay}
 Monitoring round-trip time provides important insights for network troubleshooting and traffic engineering.
-The  common  monitoring  technique  is  to  actively  send  probe packets  from  selected  vantage  points  hosts  or  middleboxes.
+The  common  monitoring  technique  is  to  actively  send  probe packets  from  selected  vantage  points  (hosts  or  middleboxes).
 In traditional  networks, the control over the network routing is
-limited,  making  it  impossible  to  monitor  every  selected  path. The  emerging  concept  of  Software  Defined  Networking  simplifies
+limited,  making  it  impossible  to  monitor  every  selected  path. The  emerging  concept  of  Software  Defined  Networking  sim-plifies
 network  control.  However,  OpenFlow,  the  common  SDN protocol,   does   not   support   RTT   monitoring   as   part   of   its
 specification. In this experience we have tryed to emply an tecnic to escape this problem\cite{rtt}.
 \newline The idea is to measure the time that occure from sending a packet from controller to a switch and the time in which the packet return from
@@ -405,7 +410,7 @@ option and when the message return to the controller we stop the timer and calcu
 If we need to calculate the delay on a specific link, the rtt has to calculate with the headed switch of this link.
 \\
 \newline
-Now we create a proper message with unique id. number, let's start a timer \texttt{TM1} and then send this message to a first switch specifing the output port.
+Now we create a proper message with unique identifier number, we start a timer \texttt{TM1} and then send this message to a first switch specifing the output port.
 Then when the packet comes to the second switch it identify the particular message and sends to the controller that stops it's dedicated timer \texttt{TM2}.
 \newline This part required a particolar flow entry on the second switch in order to send to the controller only some particulare packet.
 \begin{figure}[!h]
@@ -421,14 +426,14 @@ Then when the packet comes to the second switch it identify the particular messa
  delay = (TM2 - TM1) - RTT1/2 - RTT2/2
 \\
 \\
-Teorethically this method must works but in practice there are a lot of delay introduced from computational congestion on the virtualized controller.
-What we observe is a estimated delay like a few seconds which is not the case, infact if we made some \texttt{ping test} from one host to another host
+Teorethically this method must works but in practice there are a lot of delay introduce from computational concestion on the virtualized controller.
+What we observe is a estimated delay like some seconds that is impossible, infact if we made some \texttt{ping test} from one host to another host
 in this SDN network we realize delay around 3ms.
 \\
 
 		\subsubsection{Link Capacity}
 
-	
+	\#TODO andrea
 	The first data that was collected was the actual link capacity, which depends both on the cable used to connect
 	different devices and the effective capacity for each ethernet port linked by the cable itself. Everytime a device supporting
 	openflow connects to the controller, it gives to the latter information about its status and its capabilities. One of them is
@@ -440,7 +445,7 @@ in this SDN network we realize delay around 3ms.
 		\\
 		\\
   \subsubsection{Throughput}
-
+	\#TODO andrea
 	Using the flow statistics, we analyzed the traffic going through a link and, with a simple division, we got the normalized throughput.
 	We exploited the information given by the switches with the match structure: this means that we used the throughput for the TCP traffic,
 	the one for the UDP and for each of them we could know toward which IP the traffic is directed or is from. This was exploited with mininet
@@ -455,10 +460,11 @@ getting the packet error rate. The choice we made when exploiting this statistic
 heavy traffic was directed to links with highest packet error rate.  As the switches exchanges a packet before recognizing most of the error, both because the
 phisical error are corrected using blocks coding and other error are found using a \textit{Frame Check Sequence} like CRC, the byte error were considered worse as
 those are indirect measures themself and the error derived from the calculations could grow up.
+\#TODO andrea
+\\
+\subsection{Route changing} %cambio rotte
 
-
-\subsection{Route changing}
-
+\#TODO andrea
 For each statistic we got and each parameter we obtained, we changed the weight of the graphs. Every graph we used had a specific weight, so the
 Dijkstra algorithm for a weighted graph gave different minimum path between two hosts. From the parameter we saved, we choose to change the
 route to reach the destination and viceversa. The traffic follow the same path in both the directions and depends only on the type of traffic:
@@ -488,7 +494,6 @@ This can be seen by a reader as a violation of the layers in the ISO/OSI stack, 
 this is necessary.
 
 \subsection{Default Gateway}
-
 Analyzing the traffic while we were trying the controller on real machines in the lab, we have tried to set the default gateway to
 other machines that were connected to the SDN network, but not to the internet. We proved that the controller can redirect correctly the
 traffic to the internet. This means that
@@ -506,7 +511,7 @@ both MAC and IP, if one of the hosts is already known. We weren't able to unders
 The problem was partially solved, checking out the
 parameters known by the controller, i.e. if the two host are connected to two different switches and the controller switches the source with the
 destination address, we can switch it back; the result is that the PacketIn event now has correct informations.
-If the two host are in the same switch, the problem is solved using a controlled packet flooding, described in section \ref{sec:connectivity}.
+If the two host are in the same switch, the problem is solved using a controlled packet flooding, described in section \ref{sec:connectivity}
 
 \section{Conclusions}\label{sec:conclusion}
 Conclusions are a superbrief summary of what has been done and highlighting of the "take home message"
