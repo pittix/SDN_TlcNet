@@ -342,7 +342,7 @@ gateway on the controller.
 
   
   The links on our network logically have many parameters in witch we can storage network's performance; in practice a NetworkX's graph support only 
-  one or two link's attributes so we have create a lots of graphs with the same topological information but different link's attributes.
+  one or two link's attributes so we have create a lots of graphs with the same topological information but different link's attributescd .
   
   In order to update every link's parameters we had to create ad-hoc functionality
   since there are not proper functions constructed before.
@@ -428,6 +428,15 @@ Teorethically this method must works but in practice there are a lot of delay in
 What we observe is a estimated delay like a few seconds which is not the case, infact if we made some \texttt{ping test} from one host to another host
 in this SDN network we realize delay around 3ms.
 \\
+\\
+The following picture shows the visual output that we can obtain from delay's graph. In this graph we storage only the core information;
+\begin{figure}[!h]
+ \centering
+ \includegraphics[scale=0.26]{images/delay.png}
+ \caption{\emph{Delay's graph.}}
+ \label{fig:topo}
+\end{figure}
+
 
 		\subsubsection{Link Capacity}
 
