@@ -86,22 +86,22 @@ Quality of Service (QoS) in existing network architectures is an ongoing problem
 A lot of researchers and industries tried to solve this problem and found different solutions but some of them are too
 expensive other failed or were not implemented.
 Software Defined Networking (SDN) paradigm has emerged in response to traditional networking architecture's limitations.
-The main advantage of SDN is a centralized global network view. This particular feature pushed researchers to keep on improving QoS.
+The main advantage of SDN is a centralized global network view, which pushed researchers to keep on improving QoS exploiting it.
 
-In this report we will focus on two different aspects; all problems we faced during our attempt to create a based SDN application able to
+In this report we will focus on two different aspects, the problems we faced during our attempt to create a based SDN application able to
 support a QoS service and the results we achieved.
 
 OpenFlow standard and python POX controller, which is largely spread, were used as instruments to make this experience possible,
-despite the limit of using a new type of tecnology still in the research phase.
+despite the limit of using a new type of technology still in the research phase.
 %corretto
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
 Software-defined networking (SDN) is a way to manage networks that separates the control from the forwarding plane.
 SDN offers a centralized view of the network, giving an SDN Controller the ability to act as the “brain” of the network.
-The SDN Controller relays information to switches and routers via southbound APIs, and to the applications with northbound APIs.
-One of the most well-known protocols used by SDN Controllers is OpenFlow, widely accepted even if it isn’t the only SDN standard. 
-Centralized, programmable SDN environments can easily adjust to the rapidly changing business'needs. SDN can reduce costs and restrict
+The SDN Controller relays on the information given by switches and routers via southbound APIs, and acts with what the applications set via northbound APIs.
+One of the most well-known protocols used by SDN Controllers is OpenFlow, widely accepted even if it is not the only SDN implementation available. 
+Centralized, programmable SDN environments can easily adjust to the rapidly changing business needs and can reduce costs, restrict
 wasteful provisioning, as well as provide flexibility and innovation for networks.
 %corretto
 \subsection{OpenFlow}
@@ -119,12 +119,12 @@ wasteful provisioning, as well as provide flexibility and innovation for network
   \\
   \textbf{Openflow 1.0 messages}
   
-Openflow defines a number of messages between a controller and different switches. Now there will be presented some messages we exploited\cite{openflow}:
+Openflow defines a number of messages between a controller and different switches; some of the ones we exploited will be shown right after:\cite{openflow}:
 \begin{itemize}
 
 \item \emph{Hello} \newline This message is sent both from the controller and the switch who is looking for a controller after it
 	is turned on. If the switch sent the message, the controller, after receiving it, will send the FeatureReq packet to that switch.
-\item \emph{FeatureReq} \newline This is the message that the controller sends to a switch to get to know its abilities. The switch
+\item \emph{FeatureReq} \newline This is the message that the controller sends to a switch to get to know its capabilities. The switch
 	respond with a FeatureRes and when this last message reaches the pox controller, the ConnectionUp event is raised.
 	With the featureRes the controller will know how many ports a switch has and their properties (e.g. if they are connected, link speed,...), the flow table capabilities and the supported statistics.
 \item \emph{PortStatus} \newline this message is sent from a switch to the controller, to notify that some ports has changed their status.
@@ -138,15 +138,14 @@ The controller can decide to ignore that type of message, insert this message in
 		a flow rule for packets like this using a FlowMod.
 \item \emph{PacketOut} \newline This message is sent from the controller to forward a packet, which is the payload of the PacketOut message,
 to some ports.
-\item \emph{FlowMod} \newline This message set, delete or modify a rule inside a switch.This is the message that allows routing.
-\\
+\item \emph{FlowMod} \newline This message set, delete or modify a rule inside a switch, allowing traffic to be routed along specific paths. The structure of this message is explained as follows.
 \\
 \end{itemize}
 
 \textbf{Forwarding table}
 \begin{itemize}
- \item \texttt{match fields:} fields that compare packets in order to look for correspondences. They contain the in_port, the packet's header and others optional fields;
- \item \texttt{priority:} this field is used when there are rows with more than one correspondence;
+ \item \texttt{match fields:} compare packets properties in order to look for correspondences. They contain the in_port, the packet's header and others optional fields;
+ \item \texttt{priority:} this field is used when the specific packet matches more than one rule. The higher the number, the higher the priority a rule has;
  \item \texttt{counter:} this field was improved every time a correspondence with a packet is matched;
  \item \texttt{istruction:} a set of actions that the switch add on \emph{Action-set} of the matched packet or some instruction 
  in order to modify the pipeline flux;
@@ -159,9 +158,9 @@ to some ports.
 \textbf{Match Constraints}
 these are the principal matching method that we can use with OpenFlow v1.0:
 \begin{itemize}
- \item \texttt{in_port}: the port of swith;
- \item \texttt{dl_src/dl_dst}: 802.3 MAC source and destination of packet;
- \item \texttt{dl_type}: 802.3 EtherType;
+ \item \texttt{in_port}: the port of swith the packet is arriving;
+ \item \texttt{dl_src/dl_dst}: IEEE 802 MAC source and destination of packet;
+ \item \texttt{dl_type}: IEEE 802 EtherType;
  \item \texttt{nw_tos}: IPv4 ToS;
  \item \texttt{nw_proto}: IPv4 Protocol;
  \item \texttt{nw_src/nw_dst}: IPv4 Source/Destination addresses;
@@ -176,7 +175,7 @@ these are the principal matching method that we can use with OpenFlow v1.0:
  \item \texttt{SetDLSrc/Dst}: modify packet's MAC address;
  \item \texttt{SetNWSrc/Dst}: modify packet's IPv4 address;
  \item \texttt{SetNWTos}: change ToS fields of message;
- \item \texttt{SetTPSrc/Dst}
+ \item \texttt{SetTPSrc/Dst}: set the TCP or UDP source and destination port.
 \end{itemize}
 
 From OpenFlow v1.1 on we can modify Time To Live and other options that allow us to do something more complex.
@@ -194,8 +193,8 @@ Another limitation is the no default routing from a source to a destination: whe
 is plugged to a network of SDN switches, it won't know the destination. The only way it can
 discover the host is by flooding the network with that packet, but this makes each switch raise a PacketIn message to the controller
 slowing down the startup of the connection. This thing doesn't happen with traditional routing, because each router knows
-the network disposition, but doesn't know each host how much traffic is doing. For that the administrator need to put a firewall.
-The last one isn't needed, as the controller can set a switch to drop all the packets from/to a destination.
+the network topology, but doesn't know how much traffic each host is doing. For that the administrator need to put a firewall, which it's not needed in SDN networks,
+as the controller can set a switch to drop all the packets from/to a destination.
 
 
 \subsection{Related Work}
