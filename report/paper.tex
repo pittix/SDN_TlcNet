@@ -231,11 +231,11 @@ do anything, as this is a loop.
 
 \subsection{Adaptability of the network}
 An adaptable Network has to real-time reroute traffic in order to ensure a lot of demands.
-A general efficient Network has to manage some tasks, for example avoiding links congestion, reroute traffic when some malfunction accure on a link
+A general efficient Network has to manage some tasks, for example avoiding links congestion, reroute traffic when some malfunction occure on a link
 and running a link path algorithm. 
 In addition our network has to be adaptable in order to ensure a QoS type of service.
 
-To reach this gools we needed to have a global knowledge on the network and we had to modify the routing table on every routerboard with a
+To reach this goals we needed to have a global knowledge on the network and we had to modify the routing table on every routerboard with a
 global purpose.
 The performance of a single connection and entire network can ensure various type of metrics.
 In order to ensure the traffic shaping based on network informations, there is a need of an automatically updatable structure,
@@ -245,8 +245,8 @@ The best metric will be described below.
 \subsection{Exterior comunication}
 Our network needed to be able to communicate with the external internet to be useful for a demo which demonstrate the capabilities of a SDN network.
 The first thing we needed to accomplish was to make the controller aware of what switch and which port of the switch is connected to the external internet:
-to do so, we allowed our controller to be able to receive and process in-line parameters. We provided two parametes to the controller, so that
-it could recognize where the traffic to the internet need to be sent. Theese two parameters were the mac address of the
+to do so, we allowed our controller to be able to receive and process in-line parameters. We provided two parameters to the controller, so that
+it could recognize where the traffic to the internet need to be sent. These two parameters were the mac address of the
 port of a switch that is connected to the link and the network address of our network, to let the controller know if a request from a host was meant to another host
 within the network or the data stream was intended to the internet. We provided only one gateway, as the Routeboard had few ports available for the packet switching
 and only four SDN-capable switches to be able to simulate a real network that was generating traffic.
@@ -289,7 +289,7 @@ reserved for the connection with the controller, that is why we have to connect 
 \section{Results}\label{sec:results}
 \subsection{Controller}
 We developed a controller that can handle a mesh network with loops, avoiding
-packets flooding. The controller stores the switch and the connection between them and knows which hosts are connected to each switch port starting from the hypothesys that only one
+packets flooding. The controller stores the switch and the connection between them and knows which hosts are connected to each switch port starting from the hypotheses that only one
 host is connected to each port, unless the port is the one connected to the internet.
 With the use of statistics, the controller gets the status of the network and, if necessary,
 tries to adjust the traffic and to put in the link with the higher path loss the torrent traffic.
@@ -341,7 +341,7 @@ gateway on the controller.
 
   
   The links on our network logically have many parameters in witch we can storage network's performance; in practice a NetworkX's graph support only 
-  one or two link's attributes so we have create a lots of graphs with the same topological information but different link's attributescd .
+  one or two link's attributes so we have create a lots of graphs with the same topological information but different link's attributes .
   
   In order to update every link's parameters we had to create ad-hoc functionality
   since there are not proper functions constructed before.
@@ -366,7 +366,7 @@ Our laptop has been connected via Wi-Fi to our access point via protocol 802.11n
 No other traffic sources were active during the testing, so the router was handling only
 the traffic from laptop when sniffing traffic. The connection used was an ADSL2+ via copper.
 We did 3 type of traffic analysis: Gaming traffic, Skype® and torrent traffic. We analyzed
-\#Mb for the gaming traffic, \#Mb for the VoIP traffic and 3GB for the torrent traffic.
+\#Mb for the gaming traffic, 70 Mb for the VoIP traffic and 3GB for the torrent traffic.
 The analysis involved the average number of packets per second, the packet size, the protocol (TCP or UDP).
 
 The traffic analysis of the torrent protocol shows that the average packet size is the MTU
@@ -391,12 +391,12 @@ In traditional  networks, the control over the network routing is
 limited,  making  it  impossible  to  monitor  every  selected  path. The  emerging  concept  of  Software  Defined  Networking  simplifies
 network  control.  However,  OpenFlow,  the  common  SDN protocol,   does   not   support   RTT   monitoring   as   part   of   its
 specification. In this experience we have tryed to emply an tecnic to escape this problem\cite{rtt}.
-\newline The idea is to measure the time that occure from sending a packet from controller to a switch and the time in which the packet return from
+\newline The idea is to measure the time that occur from sending a packet from controller to a switch and the time in which the packet return from
 an other switch.
 \\
 \newline First we have to discovery round trip time from controller to every single switch on our topology.
-In order to do this on the controller we start a timer, we send a proper packet to the switch specifing the \texttt{OFPP_CONTROLLER - Send to the controller}
-option and when the message return to the controller we stop the timer and calculare RTT for the switch.
+In order to do this on the controller we start a timer, we send a proper packet to the switch specifying the \texttt{OFPP_CONTROLLER - Send to the controller}
+option and when the message return to the controller we stop the timer and calculate RTT for the switch.
 \begin{figure}[!h]
  \centering
  \includegraphics[scale=0.70]{images/rtt2.png}
@@ -407,9 +407,9 @@ option and when the message return to the controller we stop the timer and calcu
 If we need to calculate the delay on a specific link, the rtt has to calculate with the headed switch of this link.
 \\
 \newline
-Now we create a proper message with unique id. number, let's start a timer \texttt{TM1} and then send this message to a first switch specifing the output port.
+Now we create a proper message with unique id. number, let's start a timer \texttt{TM1} and then send this message to a first switch specifying the output port.
 Then when the packet comes to the second switch it identify the particular message and sends to the controller that stops it's dedicated timer \texttt{TM2}.
-\newline This part required a particolar flow entry on the second switch in order to send to the controller only some particulare packet.
+\newline This part required a particular flow entry on the second switch in order to send to the controller only some particular packet.
 \begin{figure}[!h]
  \centering
  \includegraphics[scale=0.70]{images/rtt1.png}
@@ -423,8 +423,8 @@ Then when the packet comes to the second switch it identify the particular messa
  delay = (TM2 - TM1) - RTT1/2 - RTT2/2
 \\
 \\
-Teorethically this method must works but in practice there are a lot of delay introduced from computational congestion on the virtualized controller.
-What we observe is a estimated delay like a few seconds which is not the case, infact if we made some \texttt{ping test} from one host to another host
+Theoretically this method must works but in practice there are a lot of delay introduced from computational congestion on the virtualized controller.
+What we observe is a estimated delay like a few seconds which is not the case, in fact if we made some \texttt{ping test} from one host to another host
 in this SDN network we realize delay around 3ms.
 \\
 \\
@@ -440,9 +440,9 @@ The following picture shows the visual output that we can obtain from delay's gr
 		\subsubsection{Link Capacity}
 
 	The first data that was collected was the actual link capacity, which depends both on the cable used to connect
-	different devices and the effective capacity for each ethernet port linked by the cable itself. Everytime a device supporting
+	different devices and the effective capacity for each Ethernet port linked by the cable itself. Every time a device supporting
 	openflow connects to the controller, it gives to the latter information about its status and its capabilities. One of them is
-	the link capacity in three ways: the first is the \textit{supported} capacity, which is the phisical maximum capacity, the second is the
+	the link capacity in three ways: the first is the \textit{supported} capacity, which is the physical maximum capacity, the second is the
 	\textit{advised} capacity, which name describes itself and the latter is the \textit{current} one. We choose to save the last one,
 	as it gives the most useful about the link state. This information, moreover, is the one that non-SDN switches use to choose the \textit{metric}
 	parameter. The simulation with Mininet showed us that this type of information can be used, but the Routeboards didn't support it.
@@ -458,12 +458,12 @@ The following picture shows the visual output that we can obtain from delay's gr
 	and divided the host to categories based on it.
 \\
 \subsubsection{Packet error rate}
-The port statistics given by the switches contains different informations about the state of each port in a switch. To classify a link for its
+The port statistics given by the switches contains different information about the state of each port in a switch. To classify a link for its
 reliability, we divided the number of packets with erroneous symbols that couldn't be corrected with a FEC by the total number of packets that were sent,
-getting the packet error rate. The choice we made when exploiting this statistic was privileging the gaming and normal traffic, wherease the
+getting the packet error rate. The choice we made when exploiting this statistic was privileging the gaming and normal traffic, whereas the
 heavy traffic was directed to links with highest packet error rate.  As the switches exchanges a packet before recognizing most of the error, both because the
-phisical error are corrected using blocks coding and other error are found using a \textit{Frame Check Sequence} like CRC, the byte error were considered worse as
-those are indirect measures themself and the error derived from the calculations could grow up.
+physical error are corrected using blocks coding and other error are found using a \textit{Frame Check Sequence} like CRC, the byte error were considered worse as
+those are indirect measures themselves and the error derived from the calculations could grow up.
 
 
 
@@ -477,9 +477,9 @@ we choose to set the minimum unweighted path if no statistics were available, th
 delay for the gaming one and the maximum packet error rate for the heavy traffic generated by a host.
 Two threshold were chosen based on the traffic analysis described on Sec. \ref{subsec:traf} which are 200 bytes/s for the gaming traffic and one megabyte/s
 when the node is considered in heavy traffic. Those two threshold were made as they are average values and considering that our network is made of few really fast link,
-so on one side the lower limit is sufficient not to consider gaming traffic to be a normal traffic, wherease it's easy to reach the high level of traffic load between two machines.
+so on one side the lower limit is sufficient not to consider gaming traffic to be a normal traffic, whereas it's easy to reach the high level of traffic load between two machines.
 The changing of the path were made only if the last change happened before one minute because the torrent traffic has, in its protocol, a discovery
-algortithm. This means that if a lot of changes were made, most of the traffic generated by the peer to peer, is the control one and the result is that the
+algorithm. This means that if a lot of changes were made, most of the traffic generated by the peer to peer, is the control one and the result is that the
 load in the network will be heavy and last longer.
 
 \subsection{ARP solution}
@@ -489,7 +489,7 @@ HUB and a set of computers or between a bridge and a computer. The first case is
 it higher the collision range. The bridges limits their collision range to the port. With openflow each switching unit can
 act as a bridge or as a router. In both cases analyses the header of the L2 packet L3 packet and some of the L4 header.
 If it has the rule to forward the packet, it will act as declared in the most specific matching rule. Otherwise it will
-send to the controller a PacketIn and the controller will act as programmed. If an host want to communicate to another host whithin
+send to the controller a PacketIn and the controller will act as programmed. If an host want to communicate to another host within
 the network, it sends the packet to the line and then the switch will check in its tables and execute the actions of the match found.
 For an IP network, it will check the path to reach a destination and then send to the defined output port. The mac address in this case
 became useless, as the connection is point to point. So, knowing the destination layer2 address is useless as the switch can act
@@ -508,13 +508,13 @@ internet and then add them to the path. I this way, the controller can set a pat
 a traffic shaping policy and/or differentiate the traffic from and to different networks.
 
 \subsection{Ip switching in pox}
-During our tests, both with Mininet and in the lab, we found out that the core of POX, when a PacketIn event occoures, switches the source and the destination addresses,
+During our tests, both with Mininet and in the lab, we found out that the core of POX, when a PacketIn event occures, switches the source and the destination addresses,
 both MAC and IP, if one of the hosts is already known. We weren't able to understand in which point of the code of POX  and why it happens.
 % One of the problem encountered was that, if an host is already found by pox and there is a PacketIn event, the core of the controller
 % switches the source and the destination IP and MAC address with the source one.
 The problem was partially solved, checking out the
 parameters known by the controller, i.e. if the two host are connected to two different switches and the controller switches the source with the
-destination address, we can switch it back; the result is that the PacketIn event now has correct informations.
+destination address, we can switch it back; the result is that the PacketIn event now has correct information.
 If the two host are in the same switch, the problem is solved using a controlled packet flooding, described in section \ref{sec:connectivity}.
 
 \section{Conclusions}\label{sec:conclusion}
@@ -523,12 +523,12 @@ If the two host are in the same switch, the problem is solved using a controlled
 For this course project, the report shows how the demo was made, in particular what problem we encountered
 and what we exploited, showing what protocols could be unused in the future. We showed a possible simple data structure
 that can allow the controller to be able to know the network, its topology and which route to set, based on the traffic.
-Morover, we showed how to exploit the potentialities of the SDN network, giving particular importance on the
+Moreover, we showed how to exploit the potentialities of the SDN network, giving particular importance on the
 statistics and the path switching capabilities.
 The multi-graph solution allowed us to connect the network and, based on its condition, choose which weight to apply
 in order to give a Quality of Service based network. With some boards that supports the newer version of Openflow
 (i.e. 1.5, the latest), the code can be ported, so it can be used with the Ryu core controller and more statistic can
-be exploited. Moreover, the controller can set more strictive rules for the flow control and can get more informations from the
+be exploited. Moreover, the controller can set more strictive rules for the flow control and can get more information from the
 switches.
 
 % mi pare vada bene, l ultima versione di pox dovrebbe essere almeno la 1.5.1
