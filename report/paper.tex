@@ -149,8 +149,8 @@ to some ports.
  \item \texttt{counter:} this field was improved every time a correspondence with a packet is matched;
  \item \texttt{istruction:} a set of actions that the switch add on \emph{Action-set} of the matched packet or some instruction 
  in order to modify the pipeline flux;
- \item \texttt{timeout:} this is the maximum time afther which the rule expire;
- \item \texttt{flag:} with this field we can differenciate similar voices in order to managed multiple table with similar rules;
+ \item \texttt{timeout:} this is the maximum time after which the rule expire;
+ \item \texttt{flag:} with this field we can differentiate similar voices in order to managed multiple table with similar rules;
  \\
  \\
 \end{itemize}
@@ -181,15 +181,15 @@ these are the principal matching method that we can use with OpenFlow v1.0:
 From OpenFlow v1.1 on we can modify Time To Live and other options that allow us to do something more complex.
 
 \subsection{Known Limitations}
-SDN networks are known to be underperforming with low traffic, which means that if nodes tries to connect with each other
+SDN networks are known to be under performing with low traffic, which means that if nodes tries to connect with each other
 to exchange little traffic, the network will have a higher delay and will perform worst than a
-traditional network. We tried to reduce this underperformance with the usage of the wildcards:
+traditional network. We tried to reduce this under performance with the usage of the wildcards:
 Every rule needs at least the source ip or the destination ip. If one of them is in a network
 (e.g. the internet traffic is in the network 0.0.0.0/0 excluded 192.168.10.0/24 ),
 we can redirect all the traffic from an internal host to the internet with a predefined
 path. This means that only one PacketIn will be sent to the controller if a host is surfing the network.
 
-Another limitation is the no default routing from a source to a destination: when an host
+Another limitation is the absence of the default routing from a source to a destination: when an host
 is plugged to a network of SDN switches, it won't know the destination. The only way it can
 discover the host is by flooding the network with that packet, but this makes each switch raise a PacketIn message to the controller
 slowing down the startup of the connection. This thing doesn't happen with traditional routing, because each router knows
@@ -231,7 +231,7 @@ do anything, as this is a loop.
 
 \subsection{Adaptability of the network}
 An adaptable Network has to real-time reroute traffic in order to ensure a lot of demands.
-A general efficient Network has to manage some tasks, for example avoiding links congestion, reroute traffic when some malfunction occure on a link
+A general efficient Network has to manage some tasks, for example avoiding links congestion, reroute traffic when some malfunction occur on a link
 and running a link path algorithm. 
 In addition our network has to be adaptable in order to ensure a QoS type of service.
 
@@ -242,7 +242,7 @@ In order to ensure the traffic shaping based on network informations, there is a
 where the link statistics can be saved to allow the best path for a data stream. 
 The best metric will be described below.
 
-\subsection{Exterior comunication}
+\subsection{Exterior communication}
 Our network needed to be able to communicate with the external internet to be useful for a demo which demonstrate the capabilities of a SDN network.
 The first thing we needed to accomplish was to make the controller aware of what switch and which port of the switch is connected to the external internet:
 to do so, we allowed our controller to be able to receive and process in-line parameters. We provided two parameters to the controller, so that
@@ -317,15 +317,15 @@ The topological scenario in which we have set up experience is as follows:
  \label{fig:topo}
 \end{figure}
 
-We have use 4 MikroTik Routerboards that were provided us by the Communication's Network Lab in the department of information  engineering to 
+We used 4 MikroTik Routerboards that were provided us by the Communication's Network Lab in the Department of Information Engineering to 
 University of Padua.
-The 4 routerboards are connected each other in order to design a topological loop. Then every sigle board connects two hosts and is connected with a 
+The 4 routerboards are connected each other in order to design a topological loop. Then every single board connects two hosts and is connected with a 
 legacy switch which provides logically connection with controller.
 The last thing is a host that made gateway's function; we have connected its with both routerboard and legacy network and set up this host like default 
 gateway on the controller.
 
 \subsection{Graph and Network's structures}
-  In order to achieve the realtime adaptability and statistics storage we developed ad-hoc structures.
+  In order to achieve the real time adaptability and statistics storage we developed ad-hoc structures.
   We used a specific Python's library called NetworkX \cite{networkx}. NetworkX allow us to create a graph in witch we can storage suitable nodes
   that represent resplectively switches or hosts.
   This topological structure is updated live thanks to connection events and links discover offered by POX's libraries:
@@ -404,7 +404,7 @@ option and when the message return to the controller we stop the timer and calcu
  \label{fig:topo}
 \end{figure}
 \newline
-If we need to calculate the delay on a specific link, the rtt has to calculate with the headed switch of this link.
+If we need to calculate the delay on a specific link, the rtt has to be calculated with the headed switch of this link.
 \\
 \newline
 Now we create a proper message with unique id. number, let's start a timer \texttt{TM1} and then send this message to a first switch specifying the output port.
