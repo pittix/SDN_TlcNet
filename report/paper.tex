@@ -110,14 +110,13 @@ wasteful provisioning, as well as provide flexibility and innovation for network
   The first version of OpenFlow is 1.0.0 was released on 2009 but the last standardized version v1.5.1 was approved only on march 2015 \cite{ONF_report}.
   %corrects
   %todo spostare l'immagine correttamente
-\begin{figure}[!h]
+\begin{center}
  \centering
  \includegraphics[scale=0.58]{images/of.jpg}
- \caption{\emph{OpenFlow}}
- \label{fig:topo}
-\end{figure}
-  \\
-  \textbf{Openflow 1.0 messages}
+ {Figure 1: \emph{OpenFlow}}
+ %\label{fig:topo}
+\end{center}
+\textbf{Openflow 1.0 messages}
   
 Openflow defines a number of messages between a controller and different switches. Now there will be presented some messages we exploited\cite{openflow}:
 \begin{itemize}
@@ -267,9 +266,14 @@ This VM is a 64-bit Ubuntu 14.04 that has a number of SDN software and tools ins
 \begin{figure}[!h]
   \centering
   \includegraphics[scale=0.30]{images/rboard.png}
-  \caption{\emph{Experience scenario}}
+  
   \label{fig:topo}
 \end{figure}
+\begin{center}
+ {Figure 2: \emph{Experience scenario}}
+\end{center}
+
+
 
 The router board that we used is MikroTik miniROUTER RouterBOARD 450G. This Router Board virtualizes an OpenFlow switch that supports
 OpenFlow v1.0\cite{routerboard_doc}.
@@ -314,7 +318,7 @@ The topological scenario in which we have set up experience is as follows:
 \begin{figure}[!h]
  \centering
  \includegraphics[scale=0.70]{images/topo.png}
- \caption{\emph{Experience scenario}}
+ {Figure 3: \emph{Experience scenario}}
  \label{fig:topo}
 \end{figure}
 
@@ -355,7 +359,7 @@ gateway on the controller.
   \begin{figure}[!h]
  \centering
  \includegraphics[scale=0.30]{images/topology.png}
- \caption{\emph{Experience scenario}}
+ {Figure 4: \emph{Experience scenario}}
  \label{fig:topo}
   \end{figure}
  
@@ -398,13 +402,18 @@ an other switch.
 \newline First we have to discovery round trip time from controller to every single switch on our topology.
 In order to do this on the controller we start a timer, we send a proper packet to the switch specifing the \texttt{OFPP_CONTROLLER - Send to the controller}
 option and when the message return to the controller we stop the timer and calculare RTT for the switch.
-\begin{figure}[!h]
+\begin{center}
  \centering
  \includegraphics[scale=0.70]{images/rtt2.png}
- \caption{\emph{RTT between controller and OF switch}}
+ 
  \label{fig:topo}
-\end{figure}
-\newline
+\end{center}
+
+\begin{center}
+ {Figure 5: \emph{RTT between controller and OF switch}}
+\end{center}
+
+
 If we need to calculate the delay on a specific link, the rtt has to calculate with the headed switch of this link.
 \\
 \newline
@@ -414,11 +423,14 @@ Then when the packet comes to the second switch it identify the particular messa
 \begin{figure}[!h]
  \centering
  \includegraphics[scale=0.70]{images/rtt1.png}
- \caption{\emph{Pck from controller to itself following a particular way.}}
  \label{fig:topo}
 \end{figure}
-\\
-\newline At this point we can calculate the delay of the link.
+
+\begin{center}
+  {Figure 6:\emph{Pck from controller to itself following a particular way.}}
+\end{center}
+
+At this point we can calculate the delay of the link.
 \\
 \\
  delay = (TM2 - TM1) - RTT1/2 - RTT2/2
@@ -430,15 +442,15 @@ in this SDN network we realize delay around 3ms.
 \\
 \\
 The following picture shows the visual output that we can obtain from delay's graph. In this graph we storage only the core information;
-\begin{figure}[!h]
+\begin{center}
  \centering
  \includegraphics[scale=0.26]{images/delay.png}
- \caption{\emph{Delay's graph.}}
+ {Figure 7:\emph{ Delay's graph;}}
  \label{fig:topo}
-\end{figure}
+\end{center}
 
-
-		\subsubsection{Link Capacity}
+%\end{figure}
+\subsubsection{Link Capacity}
 
 	The first data that was collected was the actual link capacity, which depends both on the cable used to connect
 	different devices and the effective capacity for each ethernet port linked by the cable itself. Everytime a device supporting
